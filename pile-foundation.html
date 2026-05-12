@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>รูปร่างฐานรากเสาเข็ม · Edge = 1.5D</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Sukhumvit Set','Sarabun',-apple-system,Segoe UI,sans-serif;background:#0a1929;color:#e8eef5;min-height:100vh;padding:14px}
+
+.wrap{max-width:1200px;margin:0 auto}
+.top{background:linear-gradient(135deg,#1e3a5f,#2c5282,#ed8936);padding:14px 18px;border-radius:10px;border:2px solid #ed8936;margin-bottom:14px}
+.top h1{font-size:20px;color:#fff;font-weight:700}
+.top p{font-size:14px;color:#fed7aa;margin-top:4px}
+
+.grid{display:grid;grid-template-columns:380px 1fr;gap:14px}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+
+.panel{background:rgba(15,41,66,0.85);border:1.5px solid #2c5282;border-radius:10px;padding:14px}
+.panel h2{color:#fbd38d;font-size:16px;border-bottom:1px solid #ed8936;padding-bottom:6px;margin-bottom:10px;font-weight:700}
+.panel h3{color:#fbd38d;font-size:14px;margin-top:12px;margin-bottom:6px;font-weight:700}
+
+.row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.row label{flex:1;font-size:14px;color:#cbd5e0}
+.row input[type=number]{width:90px;padding:6px 8px;background:#1a2f48;border:1px solid #2c5282;color:#e8eef5;border-radius:5px;font-family:inherit;font-size:14px;text-align:right}
+.row input[type=number]:focus{outline:none;border-color:#ed8936}
+.row .unit{font-size:12px;color:#94a3b8;width:32px}
+
+.btn{background:#ed8936;color:#fff;border:none;padding:8px 14px;border-radius:5px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600}
+.btn:hover{background:#dd6b20}
+.btn.sec{background:#2c5282}
+.btn.sec:hover{background:#3b6ab0}
+.btn.danger{background:#c53030;padding:4px 8px;font-size:12px}
+.btn.small{padding:4px 10px;font-size:12px}
+
+.computed{background:rgba(251,191,36,0.1);border-left:3px solid #fbbf24;padding:8px 10px;border-radius:4px;font-size:13px;color:#fde68a;margin:8px 0}
+.computed strong{color:#fbd38d}
+
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+th{background:#1e3a5f;color:#fbd38d;padding:6px 4px;text-align:center;font-weight:700;border-bottom:1px solid #ed8936}
+td{padding:4px;border-bottom:1px solid #1a2f48;text-align:center}
+td input{width:70px;padding:4px 6px;background:#1a2f48;border:1px solid #2c5282;color:#e8eef5;border-radius:4px;font-family:inherit;font-size:12px;text-align:right}
+td input:focus{outline:none;border-color:#ed8936}
+td.tag{font-weight:700;color:#fbd38d}
+
+.canvas-wrap{background:#0f1f33;border:1.5px solid #2c5282;border-radius:10px;padding:10px;min-height:480px;position:relative;overflow:hidden}
+.canvas-wrap svg{width:100%;height:auto;display:block;background:#f8fafc;border-radius:6px}
+
+.results{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:10px}
+.stat{background:#1a2f48;border:1px solid #2c5282;border-radius:6px;padding:10px}
+.stat .lbl{font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px}
+.stat .val{font-size:18px;color:#fbd38d;font-weight:700;margin-top:2px}
+.stat .sub{font-size:11px;color:#cbd5e0;margin-top:2px}
+
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#cbd5e0;margin-top:8px;padding:6px 10px;background:#1a2f48;border-radius:6px}
+.legend span{display:flex;align-items:center;gap:6px}
+.swatch{width:14px;height:14px;border-radius:50%;border:1.5px solid}
+
+.note{font-size:12px;color:#94a3b8;font-style:italic;margin-top:6px;line-height:1.5}
+
+select{padding:6px 8px;background:#1a2f48;border:1px solid #2c5282;color:#e8eef5;border-radius:5px;font-family:inherit;font-size:14px}
+select:focus{outline:none;border-color:#ed8936}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="top">
+  <h1>📐 รูปร่างฐานรากเสาเข็ม</h1>
+  <p>คำนวณรูปร่างฐานราก wrap เสาเข็มทุกต้น โดยใช้ระยะขอบฐานรากถึงศูนย์กลางเสาเข็มต้นริม = 1.5D</p>
+</div>
+
+<div class="grid">
+
+  <div class="panel">
+    <h2>1️⃣ ข้อมูลเสาเข็ม</h2>
+    <div class="row">
+      <label>D — เส้นผ่านศูนย์กลางเสาเข็ม</label>
+      <input type="number" id="D" value="40" min="1" step="1">
+      <span class="unit">cm</span>
+    </div>
+    <div class="row">
+      <label>s — ระยะห่างระหว่างเสาเข็ม</label>
+      <input type="number" id="s" value="1.20" min="0.1" step="0.05">
+      <span class="unit">m</span>
+    </div>
+    <div class="computed">
+      ระยะขอบ e = <strong>1.5D = <span id="eVal">0.600</span> m</strong>
+    </div>
+
+    <h3>📋 สร้างผังตามตาราง (Grid)</h3>
+    <div class="row">
+      <label>จำนวนแถว (X) × คอลัมน์ (Y)</label>
+      <input type="number" id="nx" value="3" min="1" step="1" style="width:55px">
+      <span style="color:#94a3b8">×</span>
+      <input type="number" id="ny" value="3" min="1" step="1" style="width:55px">
+    </div>
+    <div class="row">
+      <button class="btn" onclick="genGrid()">🔄 สร้างผังตาราง</button>
+      <button class="btn sec small" onclick="clearAll()">ล้างทั้งหมด</button>
+    </div>
+
+    <h3>➕ พิกัดเสาเข็ม (m)</h3>
+    <div style="max-height:260px;overflow-y:auto;border:1px solid #1a2f48;border-radius:6px">
+      <table id="pileTable">
+        <thead><tr><th>#</th><th>X (m)</th><th>Y (m)</th><th>ประเภท</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn small" onclick="addPile('extra')">+ เพิ่มเสาเข็ม (เพิ่มเติม)</button>
+    </div>
+    <p class="note">เสาเข็ม "เพิ่มเติม" จะถูกวาดด้วยสีต่างจากต้นเดิม เพื่อแสดงเสาเข็มที่ตอกเพิ่ม</p>
+
+    <h3>🏛️ คอลัมน์ (ไม่บังคับ)</h3>
+    <div class="row">
+      <label>ขนาดคอลัมน์ bx × by</label>
+      <input type="number" id="cbx" value="0.40" min="0" step="0.05" style="width:60px">
+      <span style="color:#94a3b8">×</span>
+      <input type="number" id="cby" value="0.40" min="0" step="0.05" style="width:60px">
+      <span class="unit">m</span>
+    </div>
+    <div class="row">
+      <label>ตำแหน่งคอลัมน์ (X, Y)</label>
+      <input type="number" id="cpx" value="" step="0.05" placeholder="ศก." style="width:60px">
+      <span style="color:#94a3b8">,</span>
+      <input type="number" id="cpy" value="" step="0.05" placeholder="ศก." style="width:60px">
+      <span class="unit">m</span>
+    </div>
+    <p class="note">เว้นว่าง = ใช้ศูนย์ถ่วงกลุ่มเสาเข็ม</p>
+  </div>
+
+  <div>
+    <div class="canvas-wrap">
+      <svg id="drawing" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="legend">
+        <span><span class="swatch" style="background:#cbd5e0;border-color:#475569"></span>ฐานราก (Footing)</span>
+        <span><span class="swatch" style="background:#3b82f6;border-color:#1d4ed8"></span>เสาเข็มเดิม</span>
+        <span><span class="swatch" style="background:#ef4444;border-color:#991b1b"></span>เสาเข็มเพิ่มเติม</span>
+        <span><span class="swatch" style="background:#fbbf24;border-color:#b45309;border-radius:2px"></span>คอลัมน์</span>
+        <span><span class="swatch" style="background:none;border-color:#ed8936;border-style:dashed"></span>ศูนย์ถ่วงกลุ่มเสาเข็ม</span>
+      </div>
+    </div>
+
+    <div class="results">
+      <div class="stat"><div class="lbl">ขนาดฐานราก B × L</div><div class="val" id="rBL">— × —</div><div class="sub">กว้าง × ยาว (m)</div></div>
+      <div class="stat"><div class="lbl">พื้นที่ฐานราก</div><div class="val" id="rArea">—</div><div class="sub">m²</div></div>
+      <div class="stat"><div class="lbl">จำนวนเสาเข็มรวม</div><div class="val" id="rN">0</div><div class="sub">ต้น</div></div>
+      <div class="stat"><div class="lbl">ศูนย์ถ่วงกลุ่มเสาเข็ม</div><div class="val" id="rCG">—</div><div class="sub">(x̄, ȳ) m</div></div>
+      <div class="stat"><div class="lbl">ระยะเยื้อง e จากศก.ฐาน</div><div class="val" id="rEcc">—</div><div class="sub">(eₓ, eᵧ) m</div></div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+let piles = []; // {x, y, type: 'orig'|'extra'}
+
+function $(id){ return document.getElementById(id); }
+function D_m(){ return (+$('D').value || 0) / 100; }
+function edge(){ return 1.5 * D_m(); }
+
+function fmt(v, d=3){ return (Math.round(v * Math.pow(10,d)) / Math.pow(10,d)).toFixed(d); }
+
+function updateE(){ $('eVal').textContent = fmt(edge(), 3); }
+
+function genGrid(){
+  const nx = +$('nx').value || 1;
+  const ny = +$('ny').value || 1;
+  const s = +$('s').value || 0;
+  piles = [];
+  for (let i = 0; i < nx; i++){
+    for (let j = 0; j < ny; j++){
+      piles.push({ x: i * s, y: j * s, type: 'orig' });
+    }
+  }
+  renderTable();
+  draw();
+}
+
+function clearAll(){
+  piles = [];
+  renderTable();
+  draw();
+}
+
+function addPile(type='extra'){
+  // place near current bounding center
+  const cg = centroid();
+  piles.push({ x: cg ? cg.x : 0, y: cg ? cg.y : 0, type });
+  renderTable();
+  draw();
+}
+
+function removePile(idx){
+  piles.splice(idx, 1);
+  renderTable();
+  draw();
+}
+
+function setPile(idx, key, val){
+  piles[idx][key] = (key === 'type') ? val : (+val || 0);
+  draw();
+}
+
+function renderTable(){
+  const tb = $('pileTable').querySelector('tbody');
+  tb.innerHTML = '';
+  piles.forEach((p, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="tag">${i+1}</td>
+      <td><input type="number" step="0.01" value="${p.x.toFixed(2)}" onchange="setPile(${i},'x',this.value)"></td>
+      <td><input type="number" step="0.01" value="${p.y.toFixed(2)}" onchange="setPile(${i},'y',this.value)"></td>
+      <td>
+        <select onchange="setPile(${i},'type',this.value)" style="font-size:12px;padding:3px 4px">
+          <option value="orig" ${p.type==='orig'?'selected':''}>เดิม</option>
+          <option value="extra" ${p.type==='extra'?'selected':''}>เพิ่ม</option>
+        </select>
+      </td>
+      <td><button class="btn danger" onclick="removePile(${i})">✕</button></td>
+    `;
+    tb.appendChild(tr);
+  });
+}
+
+function centroid(){
+  if (piles.length === 0) return null;
+  let sx = 0, sy = 0;
+  piles.forEach(p => { sx += p.x; sy += p.y; });
+  return { x: sx / piles.length, y: sy / piles.length };
+}
+
+function boundingFooting(){
+  if (piles.length === 0) return null;
+  const e = edge();
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  piles.forEach(p => {
+    if (p.x < minX) minX = p.x;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.y > maxY) maxY = p.y;
+  });
+  return {
+    x: minX - e,
+    y: minY - e,
+    w: (maxX - minX) + 2 * e,
+    h: (maxY - minY) + 2 * e,
+  };
+}
+
+function draw(){
+  updateE();
+  const svg = $('drawing');
+  svg.innerHTML = '';
+  const W = 800, H = 600, pad = 70;
+
+  const f = boundingFooting();
+  if (!f){
+    $('rBL').textContent = '— × —';
+    $('rArea').textContent = '—';
+    $('rN').textContent = '0';
+    $('rCG').textContent = '—';
+    $('rEcc').textContent = '—';
+    svg.innerHTML = `<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="#94a3b8" font-size="18" font-family="inherit">ยังไม่มีเสาเข็ม กรุณากด "สร้างผังตาราง" หรือเพิ่มเสาเข็ม</text>`;
+    return;
+  }
+
+  // scale (real-world m → svg px). Y flipped (math up → svg down)
+  const sX = (W - 2*pad) / f.w;
+  const sY = (H - 2*pad) / f.h;
+  const sc = Math.min(sX, sY);
+  const ox = (W - f.w * sc) / 2 - f.x * sc;
+  const oy = (H - f.h * sc) / 2 + (f.y + f.h) * sc; // flipped
+
+  const toSx = x => ox + x * sc;
+  const toSy = y => oy - y * sc;
+
+  const D = D_m();
+  const dR = (D/2) * sc;
+  const e = edge();
+
+  let g = '';
+
+  // grid background
+  g += `<rect x="0" y="0" width="${W}" height="${H}" fill="#f8fafc"/>`;
+
+  // footing
+  g += `<rect x="${toSx(f.x)}" y="${toSy(f.y + f.h)}" width="${f.w*sc}" height="${f.h*sc}"
+        fill="#e2e8f0" stroke="#475569" stroke-width="2"/>`;
+
+  // pile bounding (helper, dashed)
+  if (piles.length > 1){
+    const innerX = f.x + e, innerY = f.y + e, innerW = f.w - 2*e, innerH = f.h - 2*e;
+    g += `<rect x="${toSx(innerX)}" y="${toSy(innerY + innerH)}" width="${innerW*sc}" height="${innerH*sc}"
+          fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4,4" opacity="0.7"/>`;
+  }
+
+  // piles
+  piles.forEach((p, i) => {
+    const color = p.type === 'extra' ? '#ef4444' : '#3b82f6';
+    const stroke = p.type === 'extra' ? '#991b1b' : '#1d4ed8';
+    g += `<circle cx="${toSx(p.x)}" cy="${toSy(p.y)}" r="${dR}" fill="${color}" stroke="${stroke}" stroke-width="1.5" opacity="0.85"/>`;
+    g += `<text x="${toSx(p.x)}" y="${toSy(p.y) + 4}" text-anchor="middle" fill="#fff" font-size="${Math.max(10, dR*0.9)}" font-weight="700" font-family="inherit">${i+1}</text>`;
+  });
+
+  // column
+  const cbx = +$('cbx').value || 0;
+  const cby = +$('cby').value || 0;
+  const cg = centroid();
+  let cpx = $('cpx').value === '' ? (cg ? cg.x : 0) : +$('cpx').value;
+  let cpy = $('cpy').value === '' ? (cg ? cg.y : 0) : +$('cpy').value;
+  if (cbx > 0 && cby > 0){
+    g += `<rect x="${toSx(cpx - cbx/2)}" y="${toSy(cpy + cby/2)}" width="${cbx*sc}" height="${cby*sc}"
+          fill="#fbbf24" stroke="#b45309" stroke-width="2" opacity="0.6"/>`;
+  }
+
+  // centroid of pile group
+  if (cg){
+    const cx = toSx(cg.x), cy = toSy(cg.y);
+    g += `<line x1="${cx-12}" y1="${cy}" x2="${cx+12}" y2="${cy}" stroke="#ed8936" stroke-width="2" stroke-dasharray="3,2"/>`;
+    g += `<line x1="${cx}" y1="${cy-12}" x2="${cx}" y2="${cy+12}" stroke="#ed8936" stroke-width="2" stroke-dasharray="3,2"/>`;
+    g += `<circle cx="${cx}" cy="${cy}" r="3" fill="#ed8936"/>`;
+  }
+
+  // dimension lines (B horizontal, L vertical)
+  const dimOff = 28;
+  // B (width) — below footing
+  const yDim = toSy(f.y) + dimOff;
+  g += dimLine(toSx(f.x), yDim, toSx(f.x + f.w), yDim, `B = ${fmt(f.w,3)} m`);
+  // L (height) — left of footing
+  const xDim = toSx(f.x) - dimOff;
+  g += dimLine(xDim, toSy(f.y + f.h), xDim, toSy(f.y), `L = ${fmt(f.h,3)} m`, true);
+
+  // edge distance annotations (top-left corner only, for clarity)
+  // mark 1.5D from left edge to leftmost pile
+  let leftMostX = Infinity, topMostY = -Infinity;
+  piles.forEach(p => { if (p.x < leftMostX) leftMostX = p.x; if (p.y > topMostY) topMostY = p.y; });
+  // edge label on the top-left
+  const eYline = toSy(topMostY) - 18;
+  g += dimLine(toSx(f.x), eYline, toSx(leftMostX), eYline, `1.5D = ${fmt(e,3)}`, false, true);
+
+  svg.innerHTML = g;
+
+  // results
+  $('rBL').textContent = `${fmt(f.w,3)} × ${fmt(f.h,3)}`;
+  $('rArea').textContent = fmt(f.w * f.h, 3);
+  $('rN').textContent = piles.length;
+  $('rCG').textContent = cg ? `(${fmt(cg.x,3)}, ${fmt(cg.y,3)})` : '—';
+  if (cg){
+    const fcx = f.x + f.w/2, fcy = f.y + f.h/2;
+    $('rEcc').textContent = `(${fmt(cg.x - fcx, 3)}, ${fmt(cg.y - fcy, 3)})`;
+  } else {
+    $('rEcc').textContent = '—';
+  }
+}
+
+function dimLine(x1, y1, x2, y2, label, vertical=false, small=false){
+  const tickSize = 5;
+  let s = '';
+  s += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#0f172a" stroke-width="1"/>`;
+  if (vertical){
+    s += `<line x1="${x1-tickSize}" y1="${y1}" x2="${x1+tickSize}" y2="${y1}" stroke="#0f172a" stroke-width="1"/>`;
+    s += `<line x1="${x2-tickSize}" y1="${y2}" x2="${x2+tickSize}" y2="${y2}" stroke="#0f172a" stroke-width="1"/>`;
+    const mx = x1, my = (y1+y2)/2;
+    s += `<text x="${mx-8}" y="${my}" text-anchor="middle" fill="#0f172a" font-size="${small?11:13}" font-weight="600" font-family="inherit" transform="rotate(-90 ${mx-8} ${my})">${label}</text>`;
+  } else {
+    s += `<line x1="${x1}" y1="${y1-tickSize}" x2="${x1}" y2="${y1+tickSize}" stroke="#0f172a" stroke-width="1"/>`;
+    s += `<line x1="${x2}" y1="${y2-tickSize}" x2="${x2}" y2="${y2+tickSize}" stroke="#0f172a" stroke-width="1"/>`;
+    const mx = (x1+x2)/2, my = y1 - 6;
+    s += `<text x="${mx}" y="${my}" text-anchor="middle" fill="#0f172a" font-size="${small?11:13}" font-weight="600" font-family="inherit">${label}</text>`;
+  }
+  return s;
+}
+
+// react to live changes
+['D','s','cbx','cby','cpx','cpy'].forEach(id => {
+  $(id).addEventListener('input', () => { updateE(); draw(); });
+});
+
+// boot
+genGrid();
+</script>
+</body>
+</html>
