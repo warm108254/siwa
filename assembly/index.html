@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8F%97%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<title>Assembly Object · คิดปริมาณงานก่อสร้างจากโมเดล</title>
+<meta name="description" content="ชุดเครื่องมือแตกวัตถุในโมเดลตามลำดับการก่อสร้างจริง เพื่อคิดปริมาณวัสดุแบบ model-based พร้อมดูลำดับก่อสร้าง 3 มิติและแยกชั้นวัตถุ">
+<meta property="og:title" content="Assembly Object · คิดปริมาณงานก่อสร้างจากโมเดล">
+<meta property="og:description" content="แตกวัตถุตามลำดับการก่อสร้างจริง — 1 Object = 1 การเท = 1 กิจกรรม">
+<meta property="og:type" content="website">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Sukhumvit Set','Sarabun',-apple-system,Segoe UI,sans-serif;background:#0a1929;color:#e8eef5;min-height:100vh;padding:16px;
+     background-image:radial-gradient(circle at 15% 8%,rgba(237,137,54,.10),transparent 45%),radial-gradient(circle at 85% 92%,rgba(44,82,130,.30),transparent 50%)}
+.wrap{max-width:1080px;margin:0 auto}
+
+.hero{background:linear-gradient(135deg,#1e3a5f,#2c5282,#ed8936);padding:24px 22px;border-radius:12px;border:2px solid #ed8936;margin-bottom:16px}
+.hero h1{font-size:26px;color:#fff;font-weight:700;line-height:1.3}
+.hero .sub{font-size:15px;color:#fed7aa;margin-top:6px;line-height:1.6}
+.rule{margin-top:14px;background:rgba(0,0,0,.28);border-left:4px solid #fbd38d;border-radius:6px;padding:11px 14px;font-size:15px;color:#fff;line-height:1.55}
+.rule b{color:#fbd38d}
+@media (max-width:600px){.hero h1{font-size:21px}.hero .sub{font-size:14px}.rule{font-size:14px}}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-bottom:16px}
+.card{background:rgba(15,41,66,.88);border:1.5px solid #2c5282;border-radius:12px;padding:18px;display:flex;flex-direction:column;
+      text-decoration:none;color:inherit;transition:.16s}
+.card:hover{border-color:#ed8936;background:#16304d;transform:translateY(-2px)}
+.card .ico{font-size:30px;line-height:1}
+.card h2{color:#fbd38d;font-size:18px;font-weight:700;margin-top:9px}
+.card .tag{font-size:11px;color:#0a1929;background:#ed8936;border-radius:10px;padding:2px 9px;font-weight:700;align-self:flex-start;margin-top:7px}
+.card p{font-size:13.5px;color:#cbd5e0;line-height:1.65;margin-top:9px;flex:1}
+.card ul{margin:9px 0 0 17px;font-size:12.5px;color:#94a3b8;line-height:1.7}
+.card .go{margin-top:13px;font-size:14px;color:#ed8936;font-weight:700}
+
+.panel{background:rgba(15,41,66,.85);border:1.5px solid #2c5282;border-radius:12px;padding:18px;margin-bottom:16px}
+.panel h2{color:#fbd38d;font-size:17px;border-bottom:1px solid #ed8936;padding-bottom:7px;margin-bottom:12px;font-weight:700}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.st{background:#152a42;border-left:3px solid #ed8936;border-radius:6px;padding:10px 12px}
+.st .n{font-size:11px;color:#ed8936;font-weight:700;letter-spacing:.5px}
+.st .t{font-size:14px;color:#fbd38d;font-weight:700;margin-top:2px}
+.st .d{font-size:12.5px;color:#94a3b8;margin-top:4px;line-height:1.55}
+
+.flow{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;font-size:13px}
+.flow .box{flex:1;min-width:180px;background:#152a42;border:1px solid #2c5282;border-radius:8px;padding:11px 13px;line-height:1.6}
+.flow .box b{color:#fbd38d;display:block;margin-bottom:3px;font-size:13.5px}
+.flow .box span{color:#94a3b8;font-size:12.5px}
+
+.foot{text-align:center;font-size:12.5px;color:#64748b;padding:16px 0;line-height:1.8}
+.foot a{color:#94a3b8}
+.other{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+.other a{font-size:12.5px;color:#94a3b8;text-decoration:none;border:1px solid #2c5282;border-radius:14px;padding:4px 12px}
+.other a:hover{border-color:#ed8936;color:#fbd38d}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <h1>🏗️ Assembly Object — คิดปริมาณงานก่อสร้างจากโมเดล</h1>
+    <div class="sub">แตกวัตถุในโมเดลตาม “ลำดับการก่อสร้างจริง” แทนการโมเดลตามรูปทรงที่ออกแบบ แล้วดึงปริมาณ ลำดับงาน และรูปประกอบออกมาจากโมเดลชุดเดียวกัน</div>
+    <div class="rule">กฎทองที่เครื่องมือทุกตัวใช้ร่วมกัน — <b>1 Object = 1 การเทคอนกรีต = 1 กิจกรรมในแผนงาน = 1 ครั้งที่ตรวจรับงาน</b><br>
+    ขอบเขตของ object คือ <b>รอยต่อการเทจริง (construction joint)</b> ไม่ใช่รูปทรงตามแบบออกแบบ</div>
+  </div>
+
+  <div class="cards">
+    <a class="card" href="qto.html">
+      <div class="ico">📊</div>
+      <h2>คิดปริมาณ (Model-Based QTO)</h2>
+      <span class="tag">ปริมาณ · BOQ · 4D · 5D</span>
+      <p>แตกตอม่อเป็น assembly object ตามขั้นตอนจริง แล้วคำนวณปริมาณวัสดุพร้อมราคา</p>
+      <ul>
+        <li>คอนกรีต หักหัวเข็มที่ฝังในฐานราก</li>
+        <li>แบบหล่อตามพื้นที่สัมผัสจริง รวมแบบท้องคาน</li>
+        <li>งานดินสูตร prismoidal + ถมกลับ + ค่าพองตัว</li>
+        <li>Gantt · S-curve · ปรับเทียบกับถอดแบบมือ</li>
+        <li>Export CSV + JSON</li>
+      </ul>
+      <div class="go">เปิดเครื่องมือ →</div>
+    </a>
+
+    <a class="card" href="sequence.html">
+      <div class="ico">🎬</div>
+      <h2>ลำดับก่อสร้าง 3 มิติ (4D)</h2>
+      <span class="tag">แอนิเมชัน · อัดวิดีโอ</span>
+      <p>เล่นลำดับการก่อสร้างทีละขั้น 19–22 ขั้น แล้วกดปุ่มเดียวได้ไฟล์วิดีโอ</p>
+      <ul>
+        <li>เหล็ก → แบบหล่อ → เท → ถอดแบบ ครบทุกขั้น</li>
+        <li>โมเดลงานชั่วคราวจริง: ค้ำยัน แบบท้องคาน เหล็กหนวดกุ้ง</li>
+        <li>ปรับเวลาต่อขั้น · เลื่อน timeline · หมุนกล้องเอง</li>
+        <li>อัดออกมาเป็นไฟล์ .webm ในเบราว์เซอร์</li>
+      </ul>
+      <div class="go">เปิดเครื่องมือ →</div>
+    </a>
+
+    <a class="card" href="layers.html">
+      <div class="ico">🧩</div>
+      <h2>แยกชั้นวัตถุ (Static Layers)</h2>
+      <span class="tag">ภาพนิ่ง · Exploded view</span>
+      <p>โมเดลนิ่งที่ทุก object เป็นเลเยอร์ เปิด/ปิดและดึงแยกออกจากกันได้</p>
+      <ul>
+        <li>แยกตามชนิดงาน / ระดับ / ลำดับก่อสร้าง</li>
+        <li>คอนกรีตโปร่งแสง (X-ray) เห็นเหล็กข้างใน</li>
+        <li>ดูเฉพาะ “งานชั่วคราว” ที่ไม่มีรูปในแบบ</li>
+        <li>บันทึกเป็นภาพ PNG พร้อมป้ายกำกับ</li>
+      </ul>
+      <div class="go">เปิดเครื่องมือ →</div>
+    </a>
+  </div>
+
+  <div class="panel">
+    <h2>ใช้ร่วมกันยังไง</h2>
+    <div class="flow">
+      <div class="box"><b>1 · กำหนดขนาด</b><span>กรอกขนาดฐานราก เสาตอม่อ คานหัวเสา และกฎการแตกวัตถุ (จำนวนชั้นเท / ความสูงแบบต่อครั้ง) — ใช้ค่าชุดเดียวกันได้ทั้งสามเครื่องมือ</span></div>
+      <div class="box"><b>2 · ได้ปริมาณ</b><span>หน้า QTO คำนวณคอนกรีต แบบหล่อ เหล็กเสริม งานดิน พร้อม BOQ และแผนงาน</span></div>
+      <div class="box"><b>3 · ได้รูปประกอบ</b><span>หน้า 4D ให้วิดีโอลำดับก่อสร้าง · หน้า Layers ให้ภาพนิ่งแยกชั้นสำหรับใส่ในเอกสารวิธีการทำงาน</span></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>หลักการ 7 ขั้นตอน</h2>
+    <div class="steps">
+      <div class="st"><div class="n">STEP 1</div><div class="t">กฎการแตกวัตถุ</div><div class="d">โมเดลตามที่จะสร้าง ไม่ใช่ตามที่ออกแบบ</div></div>
+      <div class="st"><div class="n">STEP 2</div><div class="t">ลำดับชั้น Assembly</div><div class="d">Project → Zone → Structure → Assembly → Part</div></div>
+      <div class="st"><div class="n">STEP 3</div><div class="t">กฎการตัดกัน</div><div class="d">กันปริมาตรซ้อนทับ ที่ทำให้คอนกรีตเกินจริง 3–8%</div></div>
+      <div class="st"><div class="n">STEP 4</div><div class="t">วัตถุที่ไม่มีในแบบ</div><div class="d">แบบหล่อ งานดิน รอยต่อ นั่งร้าน = derived object</div></div>
+      <div class="st"><div class="n">STEP 5</div><div class="t">ผูก Property</div><div class="d">WBS · Pay item · Spec · Activity ID · %เผื่อ</div></div>
+      <div class="st"><div class="n">STEP 6</div><div class="t">เชื่อม 4D และ 5D</div><div class="d">Object ↔ Activity ↔ Cost</div></div>
+      <div class="st"><div class="n">STEP 7</div><div class="t">ปรับเทียบ + ล็อก Baseline</div><div class="d">ต่างจากถอดแบบมือไม่เกิน ±3–5%</div></div>
+    </div>
+    <div style="font-size:12.5px;color:#94a3b8;margin-top:12px;line-height:1.7">
+      อ่านคำอธิบายเต็มของแต่ละขั้นได้ในหน้า <a href="qto.html" style="color:#ed8936">คิดปริมาณ</a> (กดที่การ์ด STEP เพื่อเปิดอ่าน)
+    </div>
+  </div>
+
+  <div class="foot">
+    ทุกเครื่องมือทำงานในเบราว์เซอร์ ไม่ส่งข้อมูลออกไปไหน · รองรับมือถือ
+    <div class="other">
+      <a href="../">🗺️ แผนที่ MR10</a>
+      <a href="../pile-foundation.html">📐 รูปร่างฐานรากเสาเข็ม</a>
+      <a href="../projects-2570.html">🏢 โครงการปี 2570</a>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
