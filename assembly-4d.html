@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4D Assembly Sequence · ลำดับการก่อสร้าง 3 มิติ + อัดเป็นวิดีโอ</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Sukhumvit Set','Sarabun',-apple-system,Segoe UI,sans-serif;background:#0a1929;color:#e8eef5;min-height:100vh;padding:14px}
+.wrap{max-width:1500px;margin:0 auto}
+.top{background:linear-gradient(135deg,#1e3a5f,#2c5282,#ed8936);padding:14px 18px;border-radius:10px;border:2px solid #ed8936;margin-bottom:14px}
+.top h1{font-size:20px;color:#fff;font-weight:700}
+.top p{font-size:14px;color:#fed7aa;margin-top:4px;line-height:1.5}
+
+.grid{display:grid;grid-template-columns:340px 1fr;gap:14px;align-items:start}
+.grid>*{min-width:0}
+@media (max-width:1000px){.grid{grid-template-columns:1fr}}
+
+.panel{background:rgba(15,41,66,0.85);border:1.5px solid #2c5282;border-radius:10px;padding:14px;margin-bottom:14px;min-width:0}
+.panel h2{color:#fbd38d;font-size:16px;border-bottom:1px solid #ed8936;padding-bottom:6px;margin-bottom:10px;font-weight:700}
+.panel h3{color:#fbd38d;font-size:13.5px;margin:13px 0 6px;font-weight:700;border-left:3px solid #ed8936;padding-left:7px}
+.panel h3:first-of-type{margin-top:2px}
+
+.row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.row label{flex:1;min-width:0;font-size:13px;color:#cbd5e0}
+.row input[type=number]{width:82px;flex-shrink:0;padding:5px 8px;background:#1a2f48;border:1px solid #2c5282;color:#e8eef5;border-radius:5px;font-family:inherit;font-size:13px;text-align:right}
+.row input:focus,.row select:focus{outline:none;border-color:#ed8936}
+.row .unit{font-size:11px;color:#94a3b8;width:30px;flex-shrink:0}
+.row select{padding:5px 8px;background:#1a2f48;border:1px solid #2c5282;color:#e8eef5;border-radius:5px;font-family:inherit;font-size:13px;width:110px}
+.chk{display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:13px;color:#cbd5e0;cursor:pointer;background:#152a42;padding:6px 9px;border-radius:5px}
+.chk input{width:17px;height:17px;accent-color:#ed8936;flex-shrink:0}
+
+.btn{background:#ed8936;color:#fff;border:none;padding:8px 14px;border-radius:5px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600}
+.btn:hover{background:#dd6b20}
+.btn:disabled{background:#4a5568;cursor:not-allowed}
+.btn.sec{background:#2c5282}.btn.sec:hover{background:#3b6ab0}
+.btn.rec{background:#c53030}.btn.rec:hover{background:#9b2c2c}
+.btn.small{padding:5px 10px;font-size:12px}
+.btnbar{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+
+#view{width:100%;aspect-ratio:16/10;background:#eef2f7;border-radius:8px;display:block;border:1.5px solid #2c5282;touch-action:none;cursor:grab}
+#view:active{cursor:grabbing}
+@media (max-width:600px){#view{aspect-ratio:4/3}}
+
+.tl{display:flex;align-items:center;gap:10px;margin-top:10px}
+.tl input[type=range]{flex:1;accent-color:#ed8936;height:6px}
+.stagenow{background:#16304d;border-left:4px solid #ed8936;border-radius:6px;padding:9px 12px;margin-top:10px}
+.stagenow .n{font-size:11px;color:#ed8936;font-weight:700;letter-spacing:.5px}
+.stagenow .t{font-size:17px;color:#fbd38d;font-weight:700;margin-top:1px}
+.stagenow .d{font-size:12.5px;color:#94a3b8;margin-top:3px;line-height:1.5}
+
+.slist{max-height:340px;overflow-y:auto;margin-top:8px;border:1px solid #1a2f48;border-radius:6px}
+.si{display:flex;align-items:center;gap:9px;padding:7px 10px;font-size:12.5px;color:#cbd5e0;cursor:pointer;border-bottom:1px solid #14283f}
+.si:last-child{border-bottom:none}
+.si:hover{background:#152a42}
+.si.on{background:#1e3a5f;color:#fbd38d;font-weight:700}
+.si .num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#2c5282;color:#e8eef5;font-size:11px;font-weight:700;flex-shrink:0}
+.si.on .num{background:#ed8936;color:#0a1929}
+.si.done .num{background:#166534;color:#86efac}
+
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:#cbd5e0;margin-top:9px;padding:8px 10px;background:#1a2f48;border-radius:6px}
+.legend span{display:flex;align-items:center;gap:6px}
+.sw{width:14px;height:14px;border-radius:3px;border:1px solid #64748b}
+
+.note{font-size:11.5px;color:#94a3b8;font-style:italic;margin-top:8px;line-height:1.6}
+.computed{background:rgba(251,191,36,0.1);border-left:3px solid #fbbf24;padding:8px 10px;border-radius:4px;font-size:12.5px;color:#fde68a;margin:9px 0;line-height:1.6}
+.badge{font-size:11px;padding:2px 9px;border-radius:10px;font-weight:700}
+.ok{background:#166534;color:#86efac}.bad{background:#7f1d1d;color:#fca5a5}.warn{background:#854d0e;color:#fde68a}
+.err{background:#7f1d1d;color:#fca5a5;padding:10px;border-radius:6px;font-size:13px;margin-top:8px;display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="top">
+  <h1>🎬 4D Assembly Sequence — ลำดับการก่อสร้าง 3 มิติ</h1>
+  <p>เทคนิคเดียวกับวิดีโอลำดับก่อสร้างที่เห็นทั่วไป: แตกงานเป็น object ตามขั้นตอนจริง (เหล็ก → แบบหล่อ → เท → ถอดแบบ) แล้วสั่งให้ object โผล่ทีละขั้น · กดปุ่มอัดเพื่อได้ไฟล์วิดีโอ</p>
+</div>
+
+<div class="grid">
+
+<!-- LEFT -->
+<div>
+  <div class="panel">
+    <h2>▶️ การเล่น &amp; อัดวิดีโอ</h2>
+    <div class="btnbar">
+      <button class="btn" id="btnPlay">▶ เล่น</button>
+      <button class="btn sec" id="btnPrev">⏮ ก่อนหน้า</button>
+      <button class="btn sec" id="btnNext">⏭ ถัดไป</button>
+      <button class="btn sec" id="btnReset">↺ เริ่มใหม่</button>
+    </div>
+    <div class="row" style="margin-top:10px"><label>เวลาต่อขั้นตอน</label><input type="number" id="stepSec" value="1.6" min="0.3" step="0.1"><span class="unit">วิ</span></div>
+    <label class="chk"><input type="checkbox" id="autoOrbit" checked> หมุนกล้องอัตโนมัติขณะเล่น</label>
+    <div class="btnbar">
+      <button class="btn rec" id="btnRec">⏺ อัดวิดีโอทั้งลำดับ</button>
+    </div>
+    <div class="note">อัดภาพจาก canvas โดยตรง (WebM) — เริ่มจากขั้นที่ 1 เล่นจนจบแล้วดาวน์โหลดอัตโนมัติ ระหว่างอัดอย่าสลับแท็บ</div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div class="panel">
+    <h2>📐 ขนาดชิ้นส่วน</h2>
+    <h3>งานดิน + ฐานราก</h3>
+    <div class="row"><label>ระดับขุด GL → ท้อง คสล.หยาบ</label><input type="number" id="excDepth" value="3.0" min="0.5" step="0.1"><span class="unit">m</span></div>
+    <div class="row"><label>ระยะพื้นที่ทำงานรอบฐาน</label><input type="number" id="ws" value="0.6" min="0" step="0.05"><span class="unit">m</span></div>
+    <div class="row"><label>ความลาดข้างบ่อ (นอน:ดิ่ง)</label><input type="number" id="slope" value="0.5" min="0" step="0.1"><span class="unit">:1</span></div>
+    <div class="row"><label>ฐานราก L × W × H</label>
+      <input type="number" id="capL" value="4.5" step="0.1" style="width:52px">
+      <input type="number" id="capW" value="4.5" step="0.1" style="width:52px">
+      <input type="number" id="capH" value="1.5" step="0.1" style="width:52px"><span class="unit">m</span></div>
+    <div class="row"><label>จำนวนเสาเข็ม (n×n)</label><input type="number" id="nPileSide" value="3" min="1" max="5" step="1"><span class="unit">แถว</span></div>
+
+    <h3>เสาตอม่อ</h3>
+    <div class="row"><label>หน้าตัด b × d</label>
+      <input type="number" id="colB" value="1.2" step="0.05" style="width:52px">
+      <input type="number" id="colD" value="1.2" step="0.05" style="width:52px"><span class="unit">m</span></div>
+    <div class="row"><label>ความสูงเสา</label><input type="number" id="colH" value="7.0" step="0.1"><span class="unit">m</span></div>
+    <div class="row"><label>จำนวนชั้นเท (lift)</label><input type="number" id="lifts" value="2" min="1" max="4" step="1"><span class="unit">ชั้น</span></div>
+
+    <h3>คานหัวเสา</h3>
+    <div class="row"><label>L × W × H</label>
+      <input type="number" id="chL" value="9.0" step="0.1" style="width:52px">
+      <input type="number" id="chW" value="1.6" step="0.05" style="width:52px">
+      <input type="number" id="chH" value="1.4" step="0.05" style="width:52px"><span class="unit">m</span></div>
+    <div class="row"><label>แท่นรองรับ (จำนวน)</label><input type="number" id="pedN" value="6" min="0" max="10" step="1"><span class="unit">จุด</span></div>
+
+    <h3>รายละเอียดเหล็ก</h3>
+    <div class="row"><label>ระยะเรียงเหล็กฐานราก</label><input type="number" id="capSp" value="0.20" min="0.08" step="0.01"><span class="unit">m</span></div>
+    <div class="row"><label>ระยะปลอกเสา/คาน</label><input type="number" id="tieSp" value="0.20" min="0.08" step="0.01"><span class="unit">m</span></div>
+    <div class="btnbar"><button class="btn sec small" id="btnRebuild">🔄 สร้างโมเดลใหม่</button></div>
+    <div class="computed" id="info">—</div>
+  </div>
+
+  <div class="panel">
+    <h2>💡 หลักการที่ใช้</h2>
+    <div style="font-size:12.5px;color:#cbd5e0;line-height:1.75">
+      วิดีโอลำดับก่อสร้างทุกตัวใช้หลักเดียวกัน — <b style="color:#fbd38d">ไม่ได้ "เคลื่อนย้าย" วัตถุ แต่ "เปิด/ปิดการมองเห็น" ตามลำดับ</b><br><br>
+      1. แตกงานเป็น object ย่อยตามขั้นตอนจริง<br>
+      2. <b style="color:#fbd38d">โมเดลงานชั่วคราวเป็น object จริง</b> — แบบหล่อ ค้ำยัน เหล็กหนวดกุ้ง<br>
+      3. ใส่ค่า “ขั้นที่เท่าไร” ให้ทุก object<br>
+      4. ไล่ขั้น → เปิด object ของขั้นนั้น / ปิดแบบหล่อเมื่อถอด<br>
+      5. ตรึงกล้อง แล้ว render ออกเป็นวิดีโอ
+    </div>
+  </div>
+</div>
+
+<!-- RIGHT -->
+<div>
+  <div class="panel">
+    <h2>โมเดล 3 มิติ <span class="badge ok" id="stageCount">—</span></h2>
+    <canvas id="view"></canvas>
+    <div class="tl">
+      <span style="font-size:12px;color:#94a3b8;white-space:nowrap">ขั้นที่</span>
+      <input type="range" id="scrub" min="0" max="1" step="1" value="0">
+      <span style="font-size:13px;color:#fbd38d;font-weight:700;white-space:nowrap" id="scrubLbl">1 / 1</span>
+    </div>
+    <div class="stagenow"><div class="n" id="snN">ขั้นที่ 1</div><div class="t" id="snT">—</div><div class="d" id="snD">—</div></div>
+    <div class="legend">
+      <span><i class="sw" style="background:#c99a63"></i>แบบหล่อ / ค้ำยัน</span>
+      <span><i class="sw" style="background:#4f7ea8"></i>เหล็กเสริม</span>
+      <span><i class="sw" style="background:#cfcfcf"></i>คอนกรีตโครงสร้าง</span>
+      <span><i class="sw" style="background:#a8a8a8"></i>คอนกรีตหยาบ / เข็ม</span>
+      <span><i class="sw" style="background:#9b7a52"></i>ดิน</span>
+    </div>
+    <div class="note">ลากเมาส์/นิ้ว = หมุน · ล้อ/นิ้วสองนิ้ว = ซูม · คลิกขั้นตอนในรายการเพื่อกระโดดไปขั้นนั้น</div>
+  </div>
+
+  <div class="panel">
+    <h2>📋 ลำดับขั้นตอน (Assembly Sequence)</h2>
+    <div class="slist" id="slist"></div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const g = id => parseFloat($(id).value)||0;
+
+/* ============================================================
+   THREE.JS SETUP
+   ============================================================ */
+const canvas = $('view');
+let renderer, scene, camera;
+try{
+  renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+}catch(e){
+  $('err').style.display='block';
+  $('err').textContent='เบราว์เซอร์นี้ไม่รองรับ WebGL — เปิดด้วย Chrome/Edge/Safari รุ่นใหม่';
+  return;
+}
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+scene = new THREE.Scene();
+scene.background = new THREE.Color(0xeef2f7);
+camera = new THREE.PerspectiveCamera(38, 16/10, 0.1, 500);
+
+const hemi = new THREE.HemisphereLight(0xffffff, 0x9aa6b2, 1.5);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffffff, 2.0);
+sun.position.set(14, 22, 12);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.near = 1; sun.shadow.camera.far = 90;
+sun.shadow.camera.left=-15; sun.shadow.camera.right=15;
+sun.shadow.camera.top=15;   sun.shadow.camera.bottom=-15;
+sun.shadow.bias = -0.0012;
+scene.add(sun);
+scene.add(new THREE.DirectionalLight(0xffffff, 0.35).translateX(-12).translateY(8).translateZ(-10));
+
+/* ---- orbit camera (เขียนเอง ไม่พึ่ง OrbitControls) ---- */
+const cam = {az: -0.65, pol: 1.05, dist: 26, target: new THREE.Vector3(0,2,0)};
+function applyCam(){
+  cam.pol = Math.max(0.15, Math.min(1.52, cam.pol));
+  cam.dist = Math.max(6, Math.min(90, cam.dist));
+  camera.position.set(
+    cam.target.x + cam.dist*Math.sin(cam.pol)*Math.cos(cam.az),
+    cam.target.y + cam.dist*Math.cos(cam.pol),
+    cam.target.z + cam.dist*Math.sin(cam.pol)*Math.sin(cam.az));
+  camera.lookAt(cam.target);
+}
+let drag=null;
+canvas.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointermove',e=>{
+  if(!drag) return;
+  cam.az -= (e.clientX-drag.x)*0.008;
+  cam.pol -= (e.clientY-drag.y)*0.006;
+  drag={x:e.clientX,y:e.clientY}; applyCam();
+});
+canvas.addEventListener('pointerup',e=>{drag=null;});
+canvas.addEventListener('pointercancel',()=>{drag=null;});
+canvas.addEventListener('wheel',e=>{e.preventDefault(); cam.dist *= (1+Math.sign(e.deltaY)*0.09); applyCam();},{passive:false});
+let pinch=0;
+canvas.addEventListener('touchmove',e=>{
+  if(e.touches.length===2){
+    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    if(pinch) { cam.dist *= pinch/d; applyCam(); }
+    pinch=d; drag=null;
+  }
+},{passive:true});
+canvas.addEventListener('touchend',()=>{pinch=0;});
+
+function resize(){
+  const w=canvas.clientWidth, h=canvas.clientHeight;
+  if(w===0||h===0) return;
+  if(canvas.width!==w*renderer.getPixelRatio()||canvas.height!==h*renderer.getPixelRatio()){
+    renderer.setSize(w,h,false);
+    camera.aspect=w/h; camera.updateProjectionMatrix();
+  }
+}
+addEventListener('resize',resize);
+
+/* ============================================================
+   MODEL BUILDER
+   ============================================================ */
+const COL = {
+  conc:0xcfcfcf, lean:0xa8a8a8, pile:0xb4b4b4, rebar:0x4f7ea8,
+  ply:0xc99a63, timber:0x8a6234, soil:0xa8875d, pitwall:0x7d6340, ped:0xdedede
+};
+let GROUPS = {}, root = null, P = {};
+
+function newGroup(name){
+  const grp = new THREE.Group();
+  grp.name = name; grp.visible = false;
+  grp.userData = {mats:[], op:0, target:0};
+  root.add(grp); GROUPS[name]=grp; return grp;
+}
+function matFor(grp, color, opts){
+  const m = new THREE.MeshStandardMaterial(Object.assign({color, roughness:0.9, metalness:0.0}, opts||{}));
+  grp.userData.mats.push(m); return m;
+}
+function addBox(grp, w,h,d, x,yBot,z, m){
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), m);
+  mesh.position.set(x, yBot+h/2, z);
+  mesh.castShadow = true; mesh.receiveShadow = true;
+  grp.add(mesh); return mesh;
+}
+function addBar(grp, r, len, x,y,z, axis, m){
+  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,7), m);
+  mesh.position.set(x,y,z);
+  if(axis==='x') mesh.rotation.z = Math.PI/2;
+  else if(axis==='z') mesh.rotation.x = Math.PI/2;
+  mesh.castShadow = true;
+  grp.add(mesh); return mesh;
+}
+// ค้ำยัน/ยันแบบ ระหว่างจุด 2 จุด — ใช้กับไม้ค้ำและไม้ยันแบบ
+function addStrut(grp, p1, p2, r, m){
+  const dir = new THREE.Vector3().subVectors(p2,p1);
+  const len = dir.length();
+  if(len < 0.05) return null;
+  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,6), m);
+  mesh.position.copy(p1).addScaledVector(dir, 0.5);
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir.clone().normalize());
+  mesh.castShadow = true;
+  grp.add(mesh); return mesh;
+}
+const V = (x,y,z)=>new THREE.Vector3(x,y,z);
+// ปลอกเหล็ก (รูปสี่เหลี่ยม) ที่ระดับ y
+function addTie(grp, bx, bz, y, r, m){
+  addBar(grp, r, bz, -bx/2, y, 0, 'z', m);
+  addBar(grp, r, bz,  bx/2, y, 0, 'z', m);
+  addBar(grp, r, bx, 0, y, -bz/2, 'x', m);
+  addBar(grp, r, bx, 0, y,  bz/2, 'x', m);
+}
+// แผงแบบหล่อ 4 ด้าน + คร่าว
+function addFormBox(grp, L, W, H, yBot, t, mPly, mTim){
+  addBox(grp, L+2*t, H, t, 0, yBot, -(W/2+t/2), mPly);
+  addBox(grp, L+2*t, H, t, 0, yBot,  (W/2+t/2), mPly);
+  addBox(grp, t, H, W, -(L/2+t/2), yBot, 0, mPly);
+  addBox(grp, t, H, W,  (L/2+t/2), yBot, 0, mPly);
+  const nW = Math.max(1, Math.round(H/0.8));
+  for(let i=1;i<=nW;i++){
+    const y = yBot + H*i/(nW+1);
+    addBox(grp, L+2*t+0.16, 0.09, 0.09, 0, y, -(W/2+t+0.045), mTim);
+    addBox(grp, L+2*t+0.16, 0.09, 0.09, 0, y,  (W/2+t+0.045), mTim);
+    addBox(grp, 0.09, 0.09, W+0.16, -(L/2+t+0.045), y, 0, mTim);
+    addBox(grp, 0.09, 0.09, W+0.16,  (L/2+t+0.045), y, 0, mTim);
+  }
+}
+
+function build(){
+  if(root){ scene.remove(root); disposeTree(root); }
+  root = new THREE.Group(); scene.add(root); GROUPS = {};
+
+  P = {
+    excDepth:g('excDepth'), ws:g('ws'), slope:g('slope'),
+    capL:g('capL'), capW:g('capW'), capH:g('capH'), nPileSide:Math.round(g('nPileSide')),
+    colB:g('colB'), colD:g('colD'), colH:g('colH'), lifts:Math.max(1,Math.round(g('lifts'))),
+    chL:g('chL'), chW:g('chW'), chH:g('chH'), pedN:Math.round(g('pedN')),
+    capSp:g('capSp'), tieSp:g('tieSp')
+  };
+  const leanT=0.10, leanOver=0.10, cover=0.075, rMain=0.014, rTie=0.008, t=0.05;
+  const yPitBot = -P.excDepth;
+  const yLeanTop = yPitBot + leanT;
+  const yCapTop  = yLeanTop + P.capH;
+  const bL=P.capL+2*(P.ws+leanOver), bW=P.capW+2*(P.ws+leanOver);
+  const tL=bL+2*P.slope*P.excDepth,  tW=bW+2*P.slope*P.excDepth;
+
+  /* ---------- ดินเดิม ---------- */
+  const gr = newGroup('ground');
+  const mSoil = matFor(gr, COL.soil, {roughness:1});
+  const OUT = Math.max(tL, tW, P.chL)/2 + 4.5, th=0.5;
+  addBox(gr,(OUT*2),th,(OUT-tW/2), 0,-th,-(tW/2+(OUT-tW/2)/2), mSoil);
+  addBox(gr,(OUT*2),th,(OUT-tW/2), 0,-th, (tW/2+(OUT-tW/2)/2), mSoil);
+  addBox(gr,(OUT-tL/2),th,tW, -(tL/2+(OUT-tL/2)/2),-th,0, mSoil);
+  addBox(gr,(OUT-tL/2),th,tW,  (tL/2+(OUT-tL/2)/2),-th,0, mSoil);
+  // ฝาดินปิดปากบ่อ — มีก่อนขุด แล้วหายไปตอนขั้น "ขุดดิน"
+  const glid = newGroup('groundLid');
+  addBox(glid, tL, th, tW, 0, -th, 0, matFor(glid, COL.soil, {roughness:1}));
+
+  /* ---------- บ่อขุด ---------- */
+  const pit = newGroup('pit');
+  const mPit = matFor(pit, COL.pitwall, {roughness:1, side:THREE.DoubleSide});
+  const v=[], d=P.excDepth;
+  const T=[[-tL/2,0,-tW/2],[tL/2,0,-tW/2],[tL/2,0,tW/2],[-tL/2,0,tW/2]];
+  const B=[[-bL/2,-d,-bW/2],[bL/2,-d,-bW/2],[bL/2,-d,bW/2],[-bL/2,-d,bW/2]];
+  for(let i=0;i<4;i++){
+    const j=(i+1)%4;
+    v.push(...T[i],...B[i],...B[j]);
+    v.push(...T[i],...B[j],...T[j]);
+  }
+  const pg = new THREE.BufferGeometry();
+  pg.setAttribute('position', new THREE.Float32BufferAttribute(v,3));
+  pg.computeVertexNormals();
+  const pw = new THREE.Mesh(pg, mPit); pw.receiveShadow=true; pit.add(pw);
+  addBox(pit, bL, 0.3, bW, 0, -d-0.3, 0, mPit);
+
+  /* ---------- เสาเข็ม + เหล็กหนวดกุ้ง ---------- */
+  const pl = newGroup('piles');
+  const mPile = matFor(pl, COL.pile), mDow = matFor(pl, COL.rebar, {metalness:0.45, roughness:0.45});
+  const n=P.nPileSide, pd=0.40, pitchX=(P.capL-1.2)/Math.max(1,n-1), pitchZ=(P.capW-1.2)/Math.max(1,n-1);
+  for(let i=0;i<n;i++) for(let k=0;k<n;k++){
+    const px=(n===1)?0:(-(P.capL-1.2)/2+i*pitchX);
+    const pz=(n===1)?0:(-(P.capW-1.2)/2+k*pitchZ);
+    const pileTop = yLeanTop+0.10;
+    const m2 = new THREE.Mesh(new THREE.CylinderGeometry(pd/2,pd/2,2.6,14), mPile);
+    m2.position.set(px, pileTop-1.3, pz); m2.castShadow=true; pl.add(m2);
+    for(let a=0;a<6;a++){
+      const th2=a/6*Math.PI*2;
+      addBar(pl, 0.011, 0.75, px+0.13*Math.cos(th2), pileTop+0.30, pz+0.13*Math.sin(th2), 'y', mDow);
+    }
+  }
+
+  /* ---------- คอนกรีตหยาบ ---------- */
+  const ln = newGroup('lean');
+  addBox(ln, P.capL+2*leanOver, leanT, P.capW+2*leanOver, 0, yPitBot, 0, matFor(ln, COL.lean));
+
+  /* ---------- เหล็กเสริมฐานราก ---------- */
+  const cr = newGroup('capRebar');
+  const mReb = matFor(cr, COL.rebar, {metalness:0.45, roughness:0.45});
+  [yLeanTop+cover, yCapTop-cover].forEach(yy=>{
+    const nx=Math.max(2,Math.floor((P.capW-2*cover)/P.capSp))+1;
+    for(let i=0;i<nx;i++){
+      const z=-(P.capW/2-cover)+i*(P.capW-2*cover)/(nx-1);
+      addBar(cr, rMain, P.capL-2*cover, 0, yy, z, 'x', mReb);
+    }
+    const nz=Math.max(2,Math.floor((P.capL-2*cover)/P.capSp))+1;
+    for(let i=0;i<nz;i++){
+      const x=-(P.capL/2-cover)+i*(P.capL-2*cover)/(nz-1);
+      addBar(cr, rMain, P.capW-2*cover, x, yy+2*rMain, 0, 'z', mReb);
+    }
+  });
+  const nSide=Math.max(2,Math.floor(P.capL/0.45));
+  for(let i=0;i<nSide;i++){
+    const x=-(P.capL/2-cover)+i*(P.capL-2*cover)/(nSide-1);
+    [-(P.capW/2-cover),(P.capW/2-cover)].forEach(z=>
+      addBar(cr, rTie, P.capH-2*cover, x, yLeanTop+P.capH/2, z, 'y', mReb));
+  }
+
+  /* ---------- แบบหล่อฐานราก ---------- */
+  const cf = newGroup('capForm');
+  const mPly=matFor(cf,COL.ply,{roughness:0.85}), mTim=matFor(cf,COL.timber,{roughness:0.9});
+  addFormBox(cf, P.capL, P.capW, P.capH, yLeanTop, t, mPly, mTim);
+  // ไม้ยันแบบ (kicker) — ยันจากหลังแบบลงไปกดพื้นบ่อ กันแบบบานตอนเทคอนกรีต
+  [[-1,0],[1,0],[0,-1],[0,1]].forEach(dir=>{
+    for(let s=-1;s<=1;s+=2){
+      const ax=dir[0]?dir[0]*(P.capL/2+t):s*P.capL/3.2;
+      const az=dir[1]?dir[1]*(P.capW/2+t):s*P.capW/3.2;
+      const top = V(ax, yLeanTop+P.capH*0.78, az);
+      const bot = V(ax+dir[0]*P.capH*0.85, yPitBot+leanT+0.05, az+dir[1]*P.capH*0.85);
+      addStrut(cf, top, bot, 0.05, mTim);
+    }
+  });
+
+  /* ---------- คอนกรีตฐานราก ---------- */
+  const cc = newGroup('capConc');
+  addBox(cc, P.capL, P.capH, P.capW, 0, yLeanTop, 0, matFor(cc, COL.conc));
+
+  /* ---------- ถมกลับ (โปร่งแสงให้เห็นของที่ฝัง) ---------- */
+  const bf = newGroup('backfill');
+  const bfm = addBox(bf, tL, P.excDepth, tW, 0, -P.excDepth, 0,
+         matFor(bf, COL.soil, {transparent:true, opacity:0.22, roughness:1, depthWrite:false}));
+  bfm.castShadow = false; bfm.receiveShadow = false;
+
+  /* ---------- เสาตอม่อ แยกชั้นเท ---------- */
+  const hLift = P.colH/P.lifts;
+  for(let L=0; L<P.lifts; L++){
+    const y0 = yCapTop + L*hLift;
+    const gRb = newGroup('colRebar'+L), mR = matFor(gRb, COL.rebar,{metalness:0.45,roughness:0.45});
+    const nb = 4;
+    for(let i=0;i<nb;i++) for(let k=0;k<nb;k++){
+      if(i>0&&i<nb-1&&k>0&&k<nb-1) continue;
+      const x=-(P.colB/2-cover)+i*(P.colB-2*cover)/(nb-1);
+      const z=-(P.colD/2-cover)+k*(P.colD-2*cover)/(nb-1);
+      addBar(gRb, rMain, hLift+(L<P.lifts-1?0.9:0.5), x, y0+(hLift+(L<P.lifts-1?0.9:0.5))/2, z, 'y', mR);
+    }
+    const nt=Math.max(2,Math.floor(hLift/P.tieSp));
+    for(let i=0;i<=nt;i++) addTie(gRb, P.colB-2*cover, P.colD-2*cover, y0+i*hLift/nt, rTie, mR);
+
+    const gFm = newGroup('colForm'+L);
+    addFormBox(gFm, P.colB, P.colD, hLift, y0, t,
+               matFor(gFm,COL.ply,{roughness:0.85}), matFor(gFm,COL.timber,{roughness:0.9}));
+
+    const gCn = newGroup('colConc'+L);
+    addBox(gCn, P.colB, hLift, P.colD, 0, y0, 0, matFor(gCn, COL.conc));
+  }
+  const yColTop = yCapTop + P.colH;
+
+  /* ---------- คานหัวเสา ---------- */
+  const hr = newGroup('chRebar'), mHR = matFor(hr, COL.rebar,{metalness:0.45,roughness:0.45});
+  [yColTop+cover, yColTop+P.chH-cover].forEach(yy=>{
+    for(let i=0;i<5;i++){
+      const z=-(P.chW/2-cover)+i*(P.chW-2*cover)/4;
+      addBar(hr, rMain, P.chL-2*cover, 0, yy, z, 'x', mHR);
+    }
+  });
+  const nst=Math.max(2,Math.floor(P.chL/P.tieSp));
+  for(let i=0;i<=nst;i++){
+    const x=-(P.chL/2-cover)+i*(P.chL-2*cover)/nst;
+    const yc=yColTop+P.chH/2, bw=P.chW-2*cover, bh=P.chH-2*cover;
+    addBar(hr,rTie,bh,x,yc,-bw/2,'y',mHR); addBar(hr,rTie,bh,x,yc,bw/2,'y',mHR);
+    addBar(hr,rTie,bw,x,yc-bh/2,0,'z',mHR); addBar(hr,rTie,bw,x,yc+bh/2,0,'z',mHR);
+  }
+
+  const hf = newGroup('chForm');
+  const mHP=matFor(hf,COL.ply,{roughness:0.85}), mHT=matFor(hf,COL.timber,{roughness:0.9});
+  addFormBox(hf, P.chL, P.chW, P.chH, yColTop, t, mHP, mHT);
+  addBox(hf, P.chL+2*t, t, P.chW+2*t, 0, yColTop-t, 0, mHP);           // แบบท้องคาน
+  for(let i=0;i<4;i++){                                                 // คร่าวรับท้องคาน
+    const x=-(P.chL/2)+ (i+0.5)*P.chL/4;
+    addBox(hf, 0.12, 0.12, P.chW+2*t, x, yColTop-t-0.12, 0, mHT);
+  }
+  const ySoffit = yColTop-t-0.24;                                        // ใต้คร่าวรับท้องคาน
+  for(let s=-1;s<=1;s+=2) for(let i=0;i<3;i++){                          // ค้ำยันรับท้องคาน
+    const x=s*(P.chL/2-0.5-i*1.3);
+    if(Math.abs(x) < P.colB/2+0.35) continue;
+    for(let zz=-1; zz<=1; zz+=2){
+      const z = zz*(P.chW/2-0.15);
+      addStrut(hf, V(x, ySoffit, z), V(x, yCapTop, z), 0.055, mHT);      // เสาค้ำตั้ง
+    }
+    addStrut(hf, V(x, yCapTop+0.35, -P.chW/2+0.15),
+                 V(x, yCapTop+0.35,  P.chW/2-0.15), 0.045, mHT);         // ไม้ยึดขวางกันเสาค้ำล้ม
+  }
+
+  const hc = newGroup('chConc');
+  addBox(hc, P.chL, P.chH, P.chW, 0, yColTop, 0, matFor(hc, COL.conc));
+
+  /* ---------- แท่นรองรับ ---------- */
+  const pdg = newGroup('ped');
+  if(P.pedN>0){
+    const mPed=matFor(pdg, COL.ped), span=P.chL-1.2;
+    for(let i=0;i<P.pedN;i++){
+      const x=(P.pedN===1)?0:(-span/2+i*span/(P.pedN-1));
+      addBox(pdg, 0.6, 0.2, 0.6, x, yColTop+P.chH, 0, mPed);
+    }
+  }
+
+  // จัดกล้องให้พอดีกรอบ: ใช้มิติจริงของโครงสร้าง ไม่ให้พื้นดินกินเฟรม
+  const spanY = (yColTop + P.chH) - yPitBot;
+  const spanX = Math.max(P.chL, tL, tW);
+  const fit   = Math.max(spanX, spanY*1.15);
+  cam.target.set(0, yPitBot + spanY*0.55, 0);
+  cam.dist = (fit*0.5)/Math.tan(camera.fov*Math.PI/360) * 1.30;
+  applyCam();
+
+  buildStages();
+  $('info').innerHTML = `โมเดลนี้มี <strong>${countMeshes(root)} ชิ้นส่วน</strong> · แบ่งเป็น <strong>${Object.keys(GROUPS).length} กลุ่ม object</strong> · <strong>${STAGES.length} ขั้นตอน</strong>`;
+}
+function countMeshes(o){ let c=0; o.traverse(x=>{if(x.isMesh)c++;}); return c; }
+function disposeTree(o){ o.traverse(x=>{ if(x.isMesh){x.geometry.dispose(); if(x.material.dispose)x.material.dispose();} }); }
+
+/* ============================================================
+   STAGES
+   ============================================================ */
+let STAGES = [];
+function buildStages(){
+  const S=[];
+  const add=(t,d,on,off)=>S.push({t,d,on:on||[],off:off||[]});
+  add('สภาพเดิม','ระดับดินเดิมก่อนเริ่มงาน',['ground','groundLid']);
+  add('ขุดดินฐานราก','ขุดเผื่อพื้นที่ทำงานและความลาดข้าง — ปริมาตรบ่อ ไม่ใช่ขนาดฐานราก',['pit'],['groundLid']);
+  add('ตัดหัวเข็ม','สกัดคอนกรีตหัวเข็ม เหลือเหล็กหนวดกุ้งฝังเข้าฐานราก',['piles']);
+  add('เทคอนกรีตหยาบ','ปรับระดับ + เป็นแบบท้องฐานราก',['lean']);
+  add('ผูกเหล็กฐานราก','ตะแกรงล่าง–บน + เหล็กข้าง วางบนลูกปูนหนุน',['capRebar']);
+  add('ตั้งแบบฐานราก','แบบข้าง + คร่าว + ค้ำยันกันแบบบาน',['capForm']);
+  add('เทคอนกรีตฐานราก','1 object = 1 การเท = 1 กิจกรรมในแผน',['capConc']);
+  add('ถอดแบบ + ถมกลับ','แบบหล่อหายไป (นำกลับไปใช้ซ้ำ) ดินถมกลับแสดงแบบโปร่งแสง',['backfill'],['capForm']);
+  for(let L=0;L<P.lifts;L++){
+    const tag=P.lifts>1?` (lift ${L+1}/${P.lifts})`:'';
+    add('ผูกเหล็กเสาตอม่อ'+tag,'ต่อทาบกับเหล็กที่ทิ้งไว้จากชั้นล่าง',['colRebar'+L], L>0?['colForm'+(L-1)]:[]);
+    add('ตั้งแบบเสา'+tag,'ความสูงแบบต่อครั้งเป็นตัวกำหนดว่าจะแตกกี่ object',['colForm'+L]);
+    add('เทคอนกรีตเสา'+tag,'ผิวบนเป็นรอยต่อ ต้องสกัด/ล้าง ก่อนเทชั้นถัดไป',['colConc'+L]);
+  }
+  add('ผูกเหล็กคานหัวเสา','เหล็กนอน + ปลอก ต่อกับเหล็กเสาที่ยื่นขึ้นมา',['chRebar'],['colForm'+(P.lifts-1)]);
+  add('ตั้งแบบคานหัวเสา','รวม “แบบท้องคาน” + คร่าว + ค้ำยัน — รายการที่มักตกหล่นจาก BOQ',['chForm']);
+  add('เทคอนกรีตคานหัวเสา','',['chConc']);
+  add('ถอดแบบ + หล่อแท่นรองรับ','',['ped'],['chForm']);
+  add('เสร็จสมบูรณ์','ตอม่อพร้อมรับคานสะพาน',[]);
+  STAGES=S;
+
+  $('scrub').max = S.length-1;
+  $('stageCount').textContent = S.length+' ขั้นตอน';
+  $('slist').innerHTML = S.map((s,i)=>
+    `<div class="si" data-i="${i}"><span class="num">${i+1}</span><span>${s.t}</span></div>`).join('');
+  $('slist').querySelectorAll('.si').forEach(el=>
+    el.onclick=()=>{ playing=false; $('btnPlay').textContent='▶ เล่น'; goStage(+el.dataset.i,true); });
+  goStage(0,true);
+}
+
+let cur=-1;
+function goStage(i, instant){
+  i=Math.max(0,Math.min(STAGES.length-1,i));
+  cur=i;
+  const on=new Set();
+  for(let k=0;k<=i;k++){ STAGES[k].on.forEach(n=>on.add(n)); STAGES[k].off.forEach(n=>on.delete(n)); }
+  for(const name in GROUPS){
+    const grp=GROUPS[name], want=on.has(name)?1:0;
+    grp.userData.target=want;
+    if(instant){ grp.userData.op=want; applyOpacity(grp); }
+  }
+  $('scrub').value=i;
+  $('scrubLbl').textContent=(i+1)+' / '+STAGES.length;
+  $('snN').textContent='ขั้นที่ '+(i+1);
+  $('snT').textContent=STAGES[i].t;
+  $('snD').textContent=STAGES[i].d||'—';
+  $('slist').querySelectorAll('.si').forEach((el,k)=>{
+    el.classList.toggle('on',k===i); el.classList.toggle('done',k<i);
+    if(k===i) el.scrollIntoView({block:'nearest'});
+  });
+}
+function applyOpacity(grp){
+  const o=grp.userData.op;
+  grp.visible = o>0.005;
+  grp.userData.mats.forEach(m=>{
+    const base = (m.userData.baseOp!==undefined)?m.userData.baseOp:(m.userData.baseOp=(m.transparent?m.opacity:1));
+    const want = base*o;
+    if(want>=0.999){ m.transparent=false; m.opacity=1; }
+    else { m.transparent=true; m.opacity=want; }
+    m.needsUpdate=true;
+  });
+}
+
+/* ============================================================
+   PLAYBACK + RECORD
+   ============================================================ */
+let playing=false, recording=false, acc=0, holdEnd=0, lastT=performance.now();
+$('btnPlay').onclick=()=>{
+  if(cur>=STAGES.length-1) goStage(0,true);
+  playing=!playing; acc=0;
+  $('btnPlay').textContent = playing?'⏸ หยุดชั่วคราว':'▶ เล่น';
+};
+$('btnNext').onclick=()=>{playing=false;$('btnPlay').textContent='▶ เล่น';goStage(cur+1);};
+$('btnPrev').onclick=()=>{playing=false;$('btnPlay').textContent='▶ เล่น';goStage(cur-1,true);};
+$('btnReset').onclick=()=>{playing=false;$('btnPlay').textContent='▶ เล่น';goStage(0,true);};
+$('scrub').oninput=e=>{playing=false;$('btnPlay').textContent='▶ เล่น';goStage(+e.target.value,true);};
+$('btnRebuild').onclick=()=>{playing=false;$('btnPlay').textContent='▶ เล่น';build();};
+
+let rec=null, chunks=[];
+$('btnRec').onclick=()=>{
+  if(recording) return;
+  const types=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];
+  const mt=types.find(t=>window.MediaRecorder&&MediaRecorder.isTypeSupported(t));
+  if(!mt){ showErr('เบราว์เซอร์นี้อัดวิดีโอไม่ได้ — ใช้ Chrome หรือ Edge แล้วลองใหม่ (หรือใช้โปรแกรมอัดหน้าจอแทน)'); return; }
+  try{
+    chunks=[];
+    const stream=canvas.captureStream(30);
+    rec=new MediaRecorder(stream,{mimeType:mt, videoBitsPerSecond:12000000});
+    rec.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
+    rec.onstop=()=>{
+      const blob=new Blob(chunks,{type:'video/webm'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download='assembly-sequence.webm'; a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+      recording=false; $('btnRec').textContent='⏺ อัดวิดีโอทั้งลำดับ'; $('btnRec').disabled=false;
+    };
+    goStage(0,true);
+    rec.start(); recording=true; playing=true; acc=0; holdEnd=0;
+    $('btnRec').textContent='⏺ กำลังอัด...'; $('btnRec').disabled=true;
+    $('btnPlay').textContent='⏸ หยุดชั่วคราว';
+  }catch(e){ showErr('อัดวิดีโอไม่สำเร็จ: '+e.message); recording=false; }
+};
+function showErr(m){ $('err').style.display='block'; $('err').textContent=m; }
+
+/* ============================================================
+   LOOP
+   ============================================================ */
+function tick(now){
+  requestAnimationFrame(tick);
+  const dt=Math.min(0.1,(now-lastT)/1000); lastT=now;
+  resize();
+
+  // fade groups
+  for(const n in GROUPS){
+    const grp=GROUPS[n], u=grp.userData;
+    if(Math.abs(u.op-u.target)>0.004){
+      u.op += Math.sign(u.target-u.op)*dt/0.45;
+      u.op = Math.max(0,Math.min(1,u.op));
+      applyOpacity(grp);
+    }
+  }
+  // advance
+  if(playing){
+    if($('autoOrbit').checked){ cam.az += dt*0.10; applyCam(); }
+    acc+=dt;
+    const step=Math.max(0.3,g('stepSec'));
+    if(cur>=STAGES.length-1){
+      holdEnd+=dt;
+      if(recording && holdEnd>2.0){ playing=false; try{rec.stop();}catch(e){} }
+      if(!recording && holdEnd>1.0){ playing=false; $('btnPlay').textContent='▶ เล่น'; }
+    } else if(acc>=step){ acc=0; goStage(cur+1); }
+  }
+  renderer.render(scene,camera);
+}
+
+build();
+applyCam();
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
