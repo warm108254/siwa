@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8F%97%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<title>4D Assembly Sequence · ลำดับการก่อสร้าง 3 มิติ + อัดเป็นวิดีโอ</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Sukhumvit Set','Sarabun',-apple-system,Segoe UI,sans-serif;background:#0a1929;color:#e8eef5;min-height:100vh;padding:14px}
+.wrap{max-width:1500px;margin:0 auto}
+.top{background:linear-gradient(135deg,#1e3a5f,#2c5282,#ed8936);padding:14px 18px;border-radius:10px;border:2px solid #ed8936;margin-bottom:14px}
+.top h1{font-size:20px;color:#fff;font-weight:700}
+.top p{font-size:14px;color:#fed7aa;margin-top:4px;line-height:1.5}
+
+.grid{display:grid;grid-template-columns:340px 1fr;gap:14px;align-items:start}
+.grid>*{min-width:0}
+@media (max-width:1000px){.grid{grid-template-columns:1fr}}
+
+.panel{background:rgba(15,41,66,0.85);border:1.5px solid #2c5282;border-radius:10px;padding:14px;margin-bottom:14px;min-width:0}
+.panel h2{color:#fbd38d;font-size:16px;border-bottom:1px solid #ed8936;padding-bottom:6px;margin-bottom:10px;font-weight:700}
+.panel h3{color:#fbd38d;font-size:13.5px;margin:13px 0 6px;font-weight:700;border-left:3px solid #ed8936;padding-left:7px}
+.panel h3:first-of-type{margin-top:2px}
+
+.row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.row label{flex:1;min-width:0;font-size:13px;color:#cbd5e0}
+.row input[type=number]{width:82px;flex-shrink:0;padding:5px 8px;background:#1a2f48;border:1px solid #2c5282;color:#e8eef5;border-radius:5px;font-family:inherit;font-size:13px;text-align:right}
+.row input:focus,.row select:focus{outline:none;border-color:#ed8936}
+.row .unit{font-size:11px;color:#94a3b8;width:30px;flex-shrink:0}
+.row select{padding:5px 8px;background:#1a2f48;border:1px solid #2c5282;color:#e8eef5;border-radius:5px;font-family:inherit;font-size:13px;width:110px}
+.chk{display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:13px;color:#cbd5e0;cursor:pointer;background:#152a42;padding:6px 9px;border-radius:5px}
+.chk input{width:17px;height:17px;accent-color:#ed8936;flex-shrink:0}
+
+.btn{background:#ed8936;color:#fff;border:none;padding:8px 14px;border-radius:5px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600}
+.btn:hover{background:#dd6b20}
+.btn:disabled{background:#4a5568;cursor:not-allowed}
+.btn.sec{background:#2c5282}.btn.sec:hover{background:#3b6ab0}
+.btn.rec{background:#c53030}.btn.rec:hover{background:#9b2c2c}
+.btn.small{padding:5px 10px;font-size:12px}
+.btnbar{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+
+#view{width:100%;aspect-ratio:16/10;background:#eef2f7;border-radius:8px;display:block;border:1.5px solid #2c5282;touch-action:none;cursor:grab}
+#view:active{cursor:grabbing}
+@media (max-width:600px){#view{aspect-ratio:4/3}}
+
+.tl{display:flex;align-items:center;gap:10px;margin-top:10px}
+.tl input[type=range]{flex:1;accent-color:#ed8936;height:6px}
+.stagenow{background:#16304d;border-left:4px solid #ed8936;border-radius:6px;padding:9px 12px;margin-top:10px}
+.stagenow .n{font-size:11px;color:#ed8936;font-weight:700;letter-spacing:.5px}
+.stagenow .t{font-size:17px;color:#fbd38d;font-weight:700;margin-top:1px}
+.stagenow .d{font-size:12.5px;color:#94a3b8;margin-top:3px;line-height:1.5}
+
+.slist{max-height:340px;overflow-y:auto;margin-top:8px;border:1px solid #1a2f48;border-radius:6px}
+.si{display:flex;align-items:center;gap:9px;padding:7px 10px;font-size:12.5px;color:#cbd5e0;cursor:pointer;border-bottom:1px solid #14283f}
+.si:last-child{border-bottom:none}
+.si:hover{background:#152a42}
+.si.on{background:#1e3a5f;color:#fbd38d;font-weight:700}
+.si .num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#2c5282;color:#e8eef5;font-size:11px;font-weight:700;flex-shrink:0}
+.si.on .num{background:#ed8936;color:#0a1929}
+.si.done .num{background:#166534;color:#86efac}
+
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:#cbd5e0;margin-top:9px;padding:8px 10px;background:#1a2f48;border-radius:6px}
+.legend span{display:flex;align-items:center;gap:6px}
+.sw{width:14px;height:14px;border-radius:3px;border:1px solid #64748b}
+
+.note{font-size:11.5px;color:#94a3b8;font-style:italic;margin-top:8px;line-height:1.6}
+.computed{background:rgba(251,191,36,0.1);border-left:3px solid #fbbf24;padding:8px 10px;border-radius:4px;font-size:12.5px;color:#fde68a;margin:9px 0;line-height:1.6}
+.badge{font-size:11px;padding:2px 9px;border-radius:10px;font-weight:700}
+.ok{background:#166534;color:#86efac}.bad{background:#7f1d1d;color:#fca5a5}.warn{background:#854d0e;color:#fde68a}
+.err{background:#7f1d1d;color:#fca5a5;padding:10px;border-radius:6px;font-size:13px;margin-top:8px;display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="top">
+  <h1>🎬 4D Assembly Sequence — ลำดับการก่อสร้าง 3 มิติ</h1>
+  <p>เทคนิคเดียวกับวิดีโอลำดับก่อสร้างที่เห็นทั่วไป: แตกงานเป็น object ตามขั้นตอนจริง (เหล็ก → แบบหล่อ → เท → ถอดแบบ) แล้วสั่งให้ object โผล่ทีละขั้น · กดปุ่มอัดเพื่อได้ไฟล์วิดีโอ</p>
+</div>
+
+<div class="grid">
+
+<!-- LEFT -->
+<div>
+  <div class="panel">
+    <h2>▶️ การเล่น &amp; อัดวิดีโอ</h2>
+    <div class="btnbar">
+      <button class="btn" id="btnPlay">▶ เล่น</button>
+      <button class="btn sec" id="btnPrev">⏮ ก่อนหน้า</button>
+      <button class="btn sec" id="btnNext">⏭ ถัดไป</button>
+      <button class="btn sec" id="btnReset">↺ เริ่มใหม่</button>
+    </div>
+    <div class="row" style="margin-top:10px"><label>เวลาต่อขั้นตอน</label><input type="number" id="stepSec" value="1.6" min="0.3" step="0.1"><span class="unit">วิ</span></div>
+    <label class="chk"><input type="checkbox" id="autoOrbit" checked> หมุนกล้องอัตโนมัติขณะเล่น</label>
+    <div class="btnbar">
+      <button class="btn rec" id="btnRec">⏺ อัดวิดีโอทั้งลำดับ</button>
+    </div>
+    <div class="note">อัดภาพจาก canvas โดยตรง (WebM) — เริ่มจากขั้นที่ 1 เล่นจนจบแล้วดาวน์โหลดอัตโนมัติ ระหว่างอัดอย่าสลับแท็บ</div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div class="panel">
+    <h2>📐 ขนาดชิ้นส่วน</h2>
+    <h3>งานดิน + ฐานราก</h3>
+    <div class="row"><label>ระดับขุด GL → ท้อง คสล.หยาบ</label><input type="number" id="excDepth" value="3.0" min="0.5" step="0.1"><span class="unit">m</span></div>
+    <div class="row"><label>ระยะพื้นที่ทำงานรอบฐาน</label><input type="number" id="ws" value="0.6" min="0" step="0.05"><span class="unit">m</span></div>
+    <div class="row"><label>ความลาดข้างบ่อ (นอน:ดิ่ง)</label><input type="number" id="slope" value="0.5" min="0" step="0.1"><span class="unit">:1</span></div>
+    <div class="row"><label>ฐานราก L × W × H</label>
+      <input type="number" id="capL" value="4.5" step="0.1" style="width:52px">
+      <input type="number" id="capW" value="4.5" step="0.1" style="width:52px">
+      <input type="number" id="capH" value="1.5" step="0.1" style="width:52px"><span class="unit">m</span></div>
+    <div class="row"><label>จำนวนเสาเข็ม (n×n)</label><input type="number" id="nPileSide" value="3" min="1" max="5" step="1"><span class="unit">แถว</span></div>
+
+    <h3>เสาตอม่อ</h3>
+    <div class="row"><label>หน้าตัด b × d</label>
+      <input type="number" id="colB" value="1.2" step="0.05" style="width:52px">
+      <input type="number" id="colD" value="1.2" step="0.05" style="width:52px"><span class="unit">m</span></div>
+    <div class="row"><label>ความสูงเสา</label><input type="number" id="colH" value="7.0" step="0.1"><span class="unit">m</span></div>
+    <div class="row"><label>จำนวนชั้นเท (lift)</label><input type="number" id="lifts" value="2" min="1" max="4" step="1"><span class="unit">ชั้น</span></div>
+
+    <h3>คานหัวเสา</h3>
+    <div class="row"><label>L × W × H</label>
+      <input type="number" id="chL" value="9.0" step="0.1" style="width:52px">
+      <input type="number" id="chW" value="1.6" step="0.05" style="width:52px">
+      <input type="number" id="chH" value="1.4" step="0.05" style="width:52px"><span class="unit">m</span></div>
+    <div class="row"><label>แท่นรองรับ (จำนวน)</label><input type="number" id="pedN" value="6" min="0" max="10" step="1"><span class="unit">จุด</span></div>
+
+    <h3>รายละเอียดเหล็ก</h3>
+    <div class="row"><label>ระยะเรียงเหล็กฐานราก</label><input type="number" id="capSp" value="0.20" min="0.08" step="0.01"><span class="unit">m</span></div>
+    <div class="row"><label>ระยะปลอกเสา/คาน</label><input type="number" id="tieSp" value="0.20" min="0.08" step="0.01"><span class="unit">m</span></div>
+    <div class="btnbar"><button class="btn sec small" id="btnRebuild">🔄 สร้างโมเดลใหม่</button></div>
+    <div class="computed" id="info">—</div>
+  </div>
+
+  <div class="panel">
+    <h2>💡 หลักการที่ใช้</h2>
+    <div style="font-size:12.5px;color:#cbd5e0;line-height:1.75">
+      วิดีโอลำดับก่อสร้างทุกตัวใช้หลักเดียวกัน — <b style="color:#fbd38d">ไม่ได้ "เคลื่อนย้าย" วัตถุ แต่ "เปิด/ปิดการมองเห็น" ตามลำดับ</b><br><br>
+      1. แตกงานเป็น object ย่อยตามขั้นตอนจริง<br>
+      2. <b style="color:#fbd38d">โมเดลงานชั่วคราวเป็น object จริง</b> — แบบหล่อ ค้ำยัน เหล็กหนวดกุ้ง<br>
+      3. ใส่ค่า “ขั้นที่เท่าไร” ให้ทุก object<br>
+      4. ไล่ขั้น → เปิด object ของขั้นนั้น / ปิดแบบหล่อเมื่อถอด<br>
+      5. ตรึงกล้อง แล้ว render ออกเป็นวิดีโอ
+    </div>
+  </div>
+</div>
+
+<!-- RIGHT -->
+<div>
+  <div class="panel">
+    <h2>โมเดล 3 มิติ <span class="badge ok" id="stageCount">—</span></h2>
+    <canvas id="view"></canvas>
+    <div class="tl">
+      <span style="font-size:12px;color:#94a3b8;white-space:nowrap">ขั้นที่</span>
+      <input type="range" id="scrub" min="0" max="1" step="1" value="0">
+      <span style="font-size:13px;color:#fbd38d;font-weight:700;white-space:nowrap" id="scrubLbl">1 / 1</span>
+    </div>
+    <div class="stagenow"><div class="n" id="snN">ขั้นที่ 1</div><div class="t" id="snT">—</div><div class="d" id="snD">—</div></div>
+    <div class="legend">
+      <span><i class="sw" style="background:#c99a63"></i>แบบหล่อ / ค้ำยัน</span>
+      <span><i class="sw" style="background:#4f7ea8"></i>เหล็กเสริม</span>
+      <span><i class="sw" style="background:#cfcfcf"></i>คอนกรีตโครงสร้าง</span>
+      <span><i class="sw" style="background:#a8a8a8"></i>คอนกรีตหยาบ / เข็ม</span>
+      <span><i class="sw" style="background:#9b7a52"></i>ดิน</span>
+    </div>
+    <div class="note">ลากเมาส์/นิ้ว = หมุน · ล้อ/นิ้วสองนิ้ว = ซูม · คลิกขั้นตอนในรายการเพื่อกระโดดไปขั้นนั้น</div>
+  </div>
+
+  <div class="panel">
+    <h2>📋 ลำดับขั้นตอน (Assembly Sequence)</h2>
+    <div class="slist" id="slist"></div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script src="model.js"></script>
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const g = id => parseFloat($(id).value)||0;
+
+/* ============================================================
+   THREE.JS SETUP
+   ============================================================ */
+const canvas = $('view');
+let renderer, scene, camera;
+try{
+  renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+}catch(e){
+  $('err').style.display='block';
+  $('err').textContent='เบราว์เซอร์นี้ไม่รองรับ WebGL — เปิดด้วย Chrome/Edge/Safari รุ่นใหม่';
+  return;
+}
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+scene = new THREE.Scene();
+scene.background = new THREE.Color(0xeef2f7);
+camera = new THREE.PerspectiveCamera(38, 16/10, 0.1, 500);
+
+const hemi = new THREE.HemisphereLight(0xffffff, 0x9aa6b2, 1.5);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffffff, 2.0);
+sun.position.set(14, 22, 12);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.near = 1; sun.shadow.camera.far = 90;
+sun.shadow.camera.left=-15; sun.shadow.camera.right=15;
+sun.shadow.camera.top=15;   sun.shadow.camera.bottom=-15;
+sun.shadow.bias = -0.0012;
+scene.add(sun);
+scene.add(new THREE.DirectionalLight(0xffffff, 0.35).translateX(-12).translateY(8).translateZ(-10));
+
+/* ---- orbit camera (เขียนเอง ไม่พึ่ง OrbitControls) ---- */
+const cam = {az: -0.65, pol: 1.05, dist: 26, target: new THREE.Vector3(0,2,0)};
+function applyCam(){
+  cam.pol = Math.max(0.15, Math.min(1.52, cam.pol));
+  cam.dist = Math.max(6, Math.min(90, cam.dist));
+  camera.position.set(
+    cam.target.x + cam.dist*Math.sin(cam.pol)*Math.cos(cam.az),
+    cam.target.y + cam.dist*Math.cos(cam.pol),
+    cam.target.z + cam.dist*Math.sin(cam.pol)*Math.sin(cam.az));
+  camera.lookAt(cam.target);
+}
+let drag=null;
+canvas.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointermove',e=>{
+  if(!drag) return;
+  cam.az -= (e.clientX-drag.x)*0.008;
+  cam.pol -= (e.clientY-drag.y)*0.006;
+  drag={x:e.clientX,y:e.clientY}; applyCam();
+});
+canvas.addEventListener('pointerup',e=>{drag=null;});
+canvas.addEventListener('pointercancel',()=>{drag=null;});
+canvas.addEventListener('wheel',e=>{e.preventDefault(); cam.dist *= (1+Math.sign(e.deltaY)*0.09); applyCam();},{passive:false});
+let pinch=0;
+canvas.addEventListener('touchmove',e=>{
+  if(e.touches.length===2){
+    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    if(pinch) { cam.dist *= pinch/d; applyCam(); }
+    pinch=d; drag=null;
+  }
+},{passive:true});
+canvas.addEventListener('touchend',()=>{pinch=0;});
+
+function resize(){
+  const w=canvas.clientWidth, h=canvas.clientHeight;
+  if(w===0||h===0) return;
+  if(canvas.width!==w*renderer.getPixelRatio()||canvas.height!==h*renderer.getPixelRatio()){
+    renderer.setSize(w,h,false);
+    camera.aspect=w/h; camera.updateProjectionMatrix();
+  }
+}
+addEventListener('resize',resize);
+
+/* ============================================================
+   MODEL + STAGES  (โมเดลอยู่ใน assembly-model.js ใช้ร่วมกับ
+   assembly-layers.html — แก้ที่เดียวมีผลทั้งสองหน้า)
+   ============================================================ */
+let M = null, GROUPS = {}, STAGES = [];
+
+function build(){
+  if(M){ scene.remove(M.root); AssemblyModel.dispose(M.root); }
+  M = AssemblyModel.build({
+    excDepth:g('excDepth'), ws:g('ws'), slope:g('slope'),
+    capL:g('capL'), capW:g('capW'), capH:g('capH'), nPileSide:g('nPileSide'),
+    colB:g('colB'), colD:g('colD'), colH:g('colH'), lifts:g('lifts'),
+    chL:g('chL'), chW:g('chW'), chH:g('chH'), pedN:g('pedN'),
+    capSp:g('capSp'), tieSp:g('tieSp')
+  });
+  scene.add(M.root);
+  GROUPS = M.groups; STAGES = M.stages;
+
+  // จัดกล้องให้พอดีกรอบ: ใช้มิติจริงของโครงสร้าง ไม่ให้พื้นดินกินเฟรม
+  const Lv = M.levels;
+  const spanY = Lv.yTop - Lv.yPitBot;
+  const spanX = Math.max(M.params.chL, Lv.tL, Lv.tW);
+  const fit   = Math.max(spanX, spanY*1.15);
+  cam.target.set(0, Lv.yPitBot + spanY*0.55, 0);
+  cam.dist = (fit*0.5)/Math.tan(camera.fov*Math.PI/360) * 1.30;
+  applyCam();
+
+  $('scrub').max = STAGES.length-1;
+  $('stageCount').textContent = STAGES.length+' ขั้นตอน';
+  $('slist').innerHTML = STAGES.map((s,i)=>
+    `<div class="si" data-i="${i}"><span class="num">${i+1}</span><span>${s.t}</span></div>`).join('');
+  $('slist').querySelectorAll('.si').forEach(el=>
+    el.onclick=()=>{ playing=false; $('btnPlay').textContent='▶ เล่น'; goStage(+el.dataset.i,true); });
+
+  $('info').innerHTML = `โมเดลนี้มี <strong>${M.countMeshes()} ชิ้นส่วน</strong> · แบ่งเป็น <strong>${M.order.length} กลุ่ม object</strong> · <strong>${STAGES.length} ขั้นตอน</strong>`;
+  goStage(0,true);
+}
+
+let cur=-1;
+function goStage(i, instant){
+  i=Math.max(0,Math.min(STAGES.length-1,i));
+  cur=i;
+  const on=new Set();
+  for(let k=0;k<=i;k++){ STAGES[k].on.forEach(n=>on.add(n)); STAGES[k].off.forEach(n=>on.delete(n)); }
+  for(const name in GROUPS){
+    const grp=GROUPS[name], want=on.has(name)?1:0;
+    grp.userData.target=want;
+    if(instant){ grp.userData.op=want; AssemblyModel.setOpacity(grp, want); }
+  }
+  $('scrub').value=i;
+  $('scrubLbl').textContent=(i+1)+' / '+STAGES.length;
+  $('snN').textContent='ขั้นที่ '+(i+1);
+  $('snT').textContent=STAGES[i].t;
+  $('snD').textContent=STAGES[i].d||'—';
+  $('slist').querySelectorAll('.si').forEach((el,k)=>{
+    el.classList.toggle('on',k===i); el.classList.toggle('done',k<i);
+    if(k===i) el.scrollIntoView({block:'nearest'});
+  });
+}
+
+
+/* ============================================================
+   PLAYBACK + RECORD
+   ============================================================ */
+let playing=false, recording=false, acc=0, holdEnd=0, lastT=performance.now();
+$('btnPlay').onclick=()=>{
+  if(cur>=STAGES.length-1) goStage(0,true);
+  playing=!playing; acc=0;
+  $('btnPlay').textContent = playing?'⏸ หยุดชั่วคราว':'▶ เล่น';
+};
+$('btnNext').onclick=()=>{playing=false;$('btnPlay').textContent='▶ เล่น';goStage(cur+1);};
+$('btnPrev').onclick=()=>{playing=false;$('btnPlay').textContent='▶ เล่น';goStage(cur-1,true);};
+$('btnReset').onclick=()=>{playing=false;$('btnPlay').textContent='▶ เล่น';goStage(0,true);};
+$('scrub').oninput=e=>{playing=false;$('btnPlay').textContent='▶ เล่น';goStage(+e.target.value,true);};
+$('btnRebuild').onclick=()=>{playing=false;$('btnPlay').textContent='▶ เล่น';build();};
+
+let rec=null, chunks=[];
+$('btnRec').onclick=()=>{
+  if(recording) return;
+  const types=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];
+  const mt=types.find(t=>window.MediaRecorder&&MediaRecorder.isTypeSupported(t));
+  if(!mt){ showErr('เบราว์เซอร์นี้อัดวิดีโอไม่ได้ — ใช้ Chrome หรือ Edge แล้วลองใหม่ (หรือใช้โปรแกรมอัดหน้าจอแทน)'); return; }
+  try{
+    chunks=[];
+    const stream=canvas.captureStream(30);
+    rec=new MediaRecorder(stream,{mimeType:mt, videoBitsPerSecond:12000000});
+    rec.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
+    rec.onstop=()=>{
+      const blob=new Blob(chunks,{type:'video/webm'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download='assembly-sequence.webm'; a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+      recording=false; $('btnRec').textContent='⏺ อัดวิดีโอทั้งลำดับ'; $('btnRec').disabled=false;
+    };
+    goStage(0,true);
+    rec.start(); recording=true; playing=true; acc=0; holdEnd=0;
+    $('btnRec').textContent='⏺ กำลังอัด...'; $('btnRec').disabled=true;
+    $('btnPlay').textContent='⏸ หยุดชั่วคราว';
+  }catch(e){ showErr('อัดวิดีโอไม่สำเร็จ: '+e.message); recording=false; }
+};
+function showErr(m){ $('err').style.display='block'; $('err').textContent=m; }
+
+/* ============================================================
+   LOOP
+   ============================================================ */
+function tick(now){
+  requestAnimationFrame(tick);
+  const dt=Math.min(0.1,(now-lastT)/1000); lastT=now;
+  resize();
+
+  // fade groups
+  for(const n in GROUPS){
+    const grp=GROUPS[n], u=grp.userData;
+    if(Math.abs(u.op-u.target)>0.004){
+      u.op += Math.sign(u.target-u.op)*dt/0.45;
+      u.op = Math.max(0,Math.min(1,u.op));
+      AssemblyModel.setOpacity(grp, u.op);
+    }
+  }
+  // advance
+  if(playing){
+    if($('autoOrbit').checked){ cam.az += dt*0.10; applyCam(); }
+    acc+=dt;
+    const step=Math.max(0.3,g('stepSec'));
+    if(cur>=STAGES.length-1){
+      holdEnd+=dt;
+      if(recording && holdEnd>2.0){ playing=false; try{rec.stop();}catch(e){} }
+      if(!recording && holdEnd>1.0){ playing=false; $('btnPlay').textContent='▶ เล่น'; }
+    } else if(acc>=step){ acc=0; goStage(cur+1); }
+  }
+  renderer.render(scene,camera);
+}
+
+build();
+applyCam();
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

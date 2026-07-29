@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8F%97%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<title>Static Model — Layer Object Assembly · แยกชั้นวัตถุแบบภาพนิ่ง</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Sukhumvit Set','Sarabun',-apple-system,Segoe UI,sans-serif;background:#0a1929;color:#e8eef5;min-height:100vh;padding:14px}
+.wrap{max-width:1500px;margin:0 auto}
+.top{background:linear-gradient(135deg,#1e3a5f,#2c5282,#ed8936);padding:14px 18px;border-radius:10px;border:2px solid #ed8936;margin-bottom:14px}
+.top h1{font-size:20px;color:#fff;font-weight:700}
+.top p{font-size:14px;color:#fed7aa;margin-top:4px;line-height:1.5}
+
+.grid{display:grid;grid-template-columns:340px 1fr;gap:14px;align-items:start}
+.grid>*{min-width:0}
+@media (max-width:1000px){.grid{grid-template-columns:1fr}}
+
+.panel{background:rgba(15,41,66,0.85);border:1.5px solid #2c5282;border-radius:10px;padding:14px;margin-bottom:14px;min-width:0}
+.panel h2{color:#fbd38d;font-size:16px;border-bottom:1px solid #ed8936;padding-bottom:6px;margin-bottom:10px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.panel h3{color:#fbd38d;font-size:13.5px;margin:13px 0 6px;font-weight:700;border-left:3px solid #ed8936;padding-left:7px}
+.panel h3:first-of-type{margin-top:2px}
+
+.row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.row label{flex:1;min-width:0;font-size:13px;color:#cbd5e0}
+.row input[type=number]{width:82px;flex-shrink:0;padding:5px 8px;background:#1a2f48;border:1px solid #2c5282;color:#e8eef5;border-radius:5px;font-family:inherit;font-size:13px;text-align:right}
+.row input:focus,.row select:focus{outline:none;border-color:#ed8936}
+.row .unit{font-size:11px;color:#94a3b8;width:30px;flex-shrink:0}
+.row select{padding:5px 8px;background:#1a2f48;border:1px solid #2c5282;color:#e8eef5;border-radius:5px;font-family:inherit;font-size:13px;flex:1;min-width:0}
+.chk{display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:13px;color:#cbd5e0;cursor:pointer;background:#152a42;padding:6px 9px;border-radius:5px}
+.chk input{width:17px;height:17px;accent-color:#ed8936;flex-shrink:0}
+
+.btn{background:#ed8936;color:#fff;border:none;padding:8px 14px;border-radius:5px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600}
+.btn:hover{background:#dd6b20}
+.btn.sec{background:#2c5282}.btn.sec:hover{background:#3b6ab0}
+.btn.small{padding:5px 10px;font-size:12px}
+.btnbar{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+
+.stage{position:relative;line-height:0}
+#view{width:100%;aspect-ratio:16/10;background:#f2f5f9;border-radius:8px;display:block;border:1.5px solid #2c5282;touch-action:none;cursor:grab}
+#view:active{cursor:grabbing}
+@media (max-width:600px){#view{aspect-ratio:4/3}}
+#labels{position:absolute;inset:0;pointer-events:none;overflow:hidden;line-height:normal}
+.lab{position:absolute;transform:translate(-50%,-50%);background:rgba(255,255,255,.94);border:1px solid #64748b;border-left-width:4px;
+     border-radius:4px;padding:2px 7px;font-size:11.5px;color:#1e3a5f;white-space:nowrap;font-weight:600;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+
+.slider{display:flex;align-items:center;gap:10px;margin-top:10px}
+.slider input[type=range]{flex:1;accent-color:#ed8936;height:6px}
+.slider .v{font-size:13px;color:#fbd38d;font-weight:700;width:44px;text-align:right}
+
+.tree{max-height:430px;overflow-y:auto;border:1px solid #1a2f48;border-radius:6px;margin-top:8px}
+.cat{display:flex;align-items:center;gap:8px;padding:7px 10px;background:#1e3a5f;font-size:12.5px;color:#fbd38d;font-weight:700;position:sticky;top:0;z-index:2}
+.cat input{width:16px;height:16px;accent-color:#ed8936}
+.cat .sw{width:12px;height:12px;border-radius:3px;border:1px solid #64748b}
+.ly{display:flex;align-items:center;gap:8px;padding:6px 10px 6px 22px;font-size:12.5px;color:#cbd5e0;border-bottom:1px solid #14283f}
+.ly:hover{background:#152a42}
+.ly input{width:16px;height:16px;accent-color:#ed8936;flex-shrink:0}
+.ly .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.ly .st{font-size:10px;color:#94a3b8;background:#1a2f48;border-radius:8px;padding:1px 6px;flex-shrink:0}
+.ly .iso{background:none;border:1px solid #2c5282;color:#94a3b8;border-radius:4px;font-size:10px;padding:1px 6px;cursor:pointer;flex-shrink:0}
+.ly .iso:hover{border-color:#ed8936;color:#fbd38d}
+.ly.dim{opacity:.42}
+
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:#cbd5e0;margin-top:9px;padding:8px 10px;background:#1a2f48;border-radius:6px}
+.legend span{display:flex;align-items:center;gap:6px}
+.sw{width:14px;height:14px;border-radius:3px;border:1px solid #64748b;display:inline-block}
+.note{font-size:11.5px;color:#94a3b8;font-style:italic;margin-top:8px;line-height:1.6}
+.computed{background:rgba(251,191,36,0.1);border-left:3px solid #fbbf24;padding:8px 10px;border-radius:4px;font-size:12.5px;color:#fde68a;margin:9px 0;line-height:1.6}
+.badge{font-size:11px;padding:2px 9px;border-radius:10px;font-weight:700;background:#166534;color:#86efac}
+.err{background:#7f1d1d;color:#fca5a5;padding:10px;border-radius:6px;font-size:13px;margin-top:8px;display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="top">
+  <h1>🧩 Static Model — Layer Object Assembly</h1>
+  <p>โมเดลนิ่ง ไม่มีการเล่นตามเวลา — ทุก assembly object เป็น “เลเยอร์” ที่เปิด/ปิดได้ และดึงแยกออกจากกันได้ (exploded view) เพื่อใช้เป็นรูปประกอบวิธีการทำงาน/BOQ</p>
+</div>
+
+<div class="grid">
+
+<!-- LEFT -->
+<div>
+  <div class="panel">
+    <h2>🔀 การแยกชั้น (Explode)</h2>
+    <div class="row"><label>รูปแบบการแยก</label>
+      <select id="mode">
+        <option value="trade">ตามชนิดงาน — เหล็ก | คอนกรีต | แบบหล่อ</option>
+        <option value="level">ตามระดับโครงสร้าง</option>
+        <option value="stage">ตามลำดับก่อสร้าง</option>
+      </select></div>
+    <div class="slider">
+      <span style="font-size:12px;color:#94a3b8">ระยะแยก</span>
+      <input type="range" id="explode" min="0" max="100" value="0">
+      <span class="v" id="explodeV">0%</span>
+    </div>
+    <label class="chk"><input type="checkbox" id="xray"> คอนกรีตโปร่งแสง (X-ray) — เห็นเหล็กข้างใน</label>
+    <label class="chk"><input type="checkbox" id="showLab" checked> แสดงป้ายกำกับเลเยอร์</label>
+    <div class="btnbar">
+      <button class="btn sec small" id="vIso">มุม ISO</button>
+      <button class="btn sec small" id="vFront">ด้านหน้า</button>
+      <button class="btn sec small" id="vSide">ด้านข้าง</button>
+      <button class="btn sec small" id="vTop">ด้านบน</button>
+      <button class="btn sec small" id="btnFit">⛶ พอดีกรอบ</button>
+    </div>
+    <div class="btnbar">
+      <button class="btn" id="btnPng">⬇ บันทึกภาพนิ่ง (PNG)</button>
+    </div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div class="panel">
+    <h2>🎛️ มุมมองด่วน</h2>
+    <div class="btnbar">
+      <button class="btn sec small" data-only="all">ทั้งหมด</button>
+      <button class="btn sec small" data-only="rebar">เฉพาะเหล็กเสริม</button>
+      <button class="btn sec small" data-only="form">เฉพาะแบบหล่อ</button>
+      <button class="btn sec small" data-only="conc">เฉพาะคอนกรีต</button>
+      <button class="btn sec small" data-only="perm">งานถาวร (ตัดงานชั่วคราวออก)</button>
+      <button class="btn sec small" data-only="temp">งานชั่วคราวอย่างเดียว</button>
+    </div>
+    <div class="note">“งานชั่วคราว” = แบบหล่อ + ค้ำยัน + ดินขุด/ถมกลับ — กลุ่มที่ไม่มีรูปในแบบก่อสร้างแต่กินเงินจริง</div>
+  </div>
+
+  <div class="panel">
+    <h2>📐 ขนาดชิ้นส่วน</h2>
+    <h3>งานดิน + ฐานราก</h3>
+    <div class="row"><label>ระดับขุด GL → ท้อง คสล.หยาบ</label><input type="number" id="excDepth" value="3.0" min="0.5" step="0.1"><span class="unit">m</span></div>
+    <div class="row"><label>ระยะพื้นที่ทำงานรอบฐาน</label><input type="number" id="ws" value="0.6" min="0" step="0.05"><span class="unit">m</span></div>
+    <div class="row"><label>ความลาดข้างบ่อ (นอน:ดิ่ง)</label><input type="number" id="slope" value="0.5" min="0" step="0.1"><span class="unit">:1</span></div>
+    <div class="row"><label>ฐานราก L × W × H</label>
+      <input type="number" id="capL" value="4.5" step="0.1" style="width:52px">
+      <input type="number" id="capW" value="4.5" step="0.1" style="width:52px">
+      <input type="number" id="capH" value="1.5" step="0.1" style="width:52px"><span class="unit">m</span></div>
+    <div class="row"><label>จำนวนเสาเข็ม (n×n)</label><input type="number" id="nPileSide" value="3" min="1" max="5" step="1"><span class="unit">แถว</span></div>
+    <h3>เสาตอม่อ</h3>
+    <div class="row"><label>หน้าตัด b × d</label>
+      <input type="number" id="colB" value="1.2" step="0.05" style="width:52px">
+      <input type="number" id="colD" value="1.2" step="0.05" style="width:52px"><span class="unit">m</span></div>
+    <div class="row"><label>ความสูงเสา</label><input type="number" id="colH" value="7.0" step="0.1"><span class="unit">m</span></div>
+    <div class="row"><label>จำนวนชั้นเท (lift)</label><input type="number" id="lifts" value="2" min="1" max="4" step="1"><span class="unit">ชั้น</span></div>
+    <h3>คานหัวเสา</h3>
+    <div class="row"><label>L × W × H</label>
+      <input type="number" id="chL" value="9.0" step="0.1" style="width:52px">
+      <input type="number" id="chW" value="1.6" step="0.05" style="width:52px">
+      <input type="number" id="chH" value="1.4" step="0.05" style="width:52px"><span class="unit">m</span></div>
+    <div class="row"><label>แท่นรองรับ (จำนวน)</label><input type="number" id="pedN" value="6" min="0" max="10" step="1"><span class="unit">จุด</span></div>
+    <h3>รายละเอียดเหล็ก</h3>
+    <div class="row"><label>ระยะเรียงเหล็กฐานราก</label><input type="number" id="capSp" value="0.20" min="0.08" step="0.01"><span class="unit">m</span></div>
+    <div class="row"><label>ระยะปลอกเสา/คาน</label><input type="number" id="tieSp" value="0.20" min="0.08" step="0.01"><span class="unit">m</span></div>
+    <div class="btnbar"><button class="btn sec small" id="btnRebuild">🔄 สร้างโมเดลใหม่</button></div>
+    <div class="computed" id="info">—</div>
+  </div>
+</div>
+
+<!-- RIGHT -->
+<div>
+  <div class="panel">
+    <h2>โมเดลนิ่ง <span class="badge" id="cnt">—</span></h2>
+    <div class="stage">
+      <canvas id="view"></canvas>
+      <div id="labels"></div>
+    </div>
+    <div class="legend">
+      <span><i class="sw" style="background:#c99a63"></i>แบบหล่อ / ค้ำยัน</span>
+      <span><i class="sw" style="background:#4f7ea8"></i>เหล็กเสริม</span>
+      <span><i class="sw" style="background:#cfcfcf"></i>คอนกรีตโครงสร้าง</span>
+      <span><i class="sw" style="background:#a8a8a8"></i>คอนกรีตหยาบ / เข็ม</span>
+      <span><i class="sw" style="background:#a8875d"></i>งานดิน</span>
+    </div>
+    <div class="note">ลากเมาส์/นิ้ว = หมุน · ล้อ/สองนิ้ว = ซูม · คลิกชื่อเลเยอร์ในรายการเพื่อดูเลเยอร์นั้นเดี่ยว ๆ</div>
+  </div>
+
+  <div class="panel">
+    <h2>🗂️ เลเยอร์วัตถุ (Layer Objects)</h2>
+    <div class="tree" id="tree"></div>
+    <div class="note">ตัวเลขในวงเล็บ = ขั้นตอนที่เลเยอร์นั้นเกิดขึ้นในลำดับก่อสร้าง (ตรงกับ assembly-4d.html)</div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script src="model.js"></script>
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const g = id => parseFloat($(id).value)||0;
+
+const canvas=$('view');
+let renderer, scene, camera;
+try{
+  renderer = new THREE.WebGLRenderer({canvas, antialias:true, preserveDrawingBuffer:true});
+}catch(e){
+  $('err').style.display='block';
+  $('err').textContent='เบราว์เซอร์นี้ไม่รองรับ WebGL — เปิดด้วย Chrome/Edge/Safari รุ่นใหม่';
+  return;
+}
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+
+scene=new THREE.Scene();
+scene.background=new THREE.Color(0xf2f5f9);
+camera=new THREE.PerspectiveCamera(38,16/10,0.1,600);
+scene.add(new THREE.HemisphereLight(0xffffff,0x9aa6b2,1.5));
+const sun=new THREE.DirectionalLight(0xffffff,2.0);
+sun.position.set(14,22,12); sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.near=1; sun.shadow.camera.far=110;
+sun.shadow.camera.left=-22; sun.shadow.camera.right=22;
+sun.shadow.camera.top=22; sun.shadow.camera.bottom=-22;
+sun.shadow.bias=-0.0012; scene.add(sun);
+const fill=new THREE.DirectionalLight(0xffffff,0.35); fill.position.set(-12,8,-10); scene.add(fill);
+
+/* ---- กล้อง ---- */
+const cam={az:-0.65,pol:1.05,dist:30,target:new THREE.Vector3(0,2,0)};
+function applyCam(){
+  cam.pol=Math.max(0.05,Math.min(1.60,cam.pol));
+  cam.dist=Math.max(5,Math.min(160,cam.dist));
+  camera.position.set(
+    cam.target.x+cam.dist*Math.sin(cam.pol)*Math.cos(cam.az),
+    cam.target.y+cam.dist*Math.cos(cam.pol),
+    cam.target.z+cam.dist*Math.sin(cam.pol)*Math.sin(cam.az));
+  camera.lookAt(cam.target);
+}
+let drag=null,pinch=0;
+canvas.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointermove',e=>{ if(!drag)return;
+  cam.az-=(e.clientX-drag.x)*0.008; cam.pol-=(e.clientY-drag.y)*0.006;
+  drag={x:e.clientX,y:e.clientY}; applyCam(); });
+canvas.addEventListener('pointerup',()=>{drag=null;});
+canvas.addEventListener('pointercancel',()=>{drag=null;});
+canvas.addEventListener('wheel',e=>{e.preventDefault();cam.dist*=(1+Math.sign(e.deltaY)*0.09);applyCam();},{passive:false});
+canvas.addEventListener('touchmove',e=>{
+  if(e.touches.length===2){
+    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    if(pinch){cam.dist*=pinch/d;applyCam();}
+    pinch=d; drag=null;
+  }},{passive:true});
+canvas.addEventListener('touchend',()=>{pinch=0;});
+function resize(){
+  const w=canvas.clientWidth,h=canvas.clientHeight;
+  if(!w||!h) return;
+  if(canvas.width!==Math.round(w*renderer.getPixelRatio())||canvas.height!==Math.round(h*renderer.getPixelRatio())){
+    renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix();
+  }
+}
+addEventListener('resize',resize);
+
+/* ============================================================
+   MODEL + LAYERS
+   ============================================================ */
+let M=null, vis={}, iso=null, baseDist=6, levelOrder=[];
+
+function build(){
+  if(M){ scene.remove(M.root); AssemblyModel.dispose(M.root); }
+  M = AssemblyModel.build({
+    excDepth:g('excDepth'), ws:g('ws'), slope:g('slope'),
+    capL:g('capL'), capW:g('capW'), capH:g('capH'), nPileSide:g('nPileSide'),
+    colB:g('colB'), colD:g('colD'), colH:g('colH'), lifts:g('lifts'),
+    chL:g('chL'), chW:g('chW'), chH:g('chH'), pedN:g('pedN'),
+    capSp:g('capSp'), tieSp:g('tieSp')
+  });
+  scene.add(M.root);
+
+  // ค่าเริ่มต้น: เปิดเฉพาะวัตถุงานก่อสร้าง — งานดินปิดไว้ให้เป็นภาพ assembly ที่สะอาด
+  vis={}; iso=null;
+  M.order.forEach(n=> vis[n] = (M.meta[n].cat!=='earth'));
+
+  levelOrder=[]; M.order.forEach(n=>{ const lv=M.meta[n].level; if(!levelOrder.includes(lv)) levelOrder.push(lv); });
+  baseDist = Math.max(M.params.capL, M.params.chL)*0.85;
+
+  buildTree();
+  $('cnt').textContent = M.order.length+' เลเยอร์ · '+M.countMeshes()+' ชิ้นส่วน';
+  $('info').innerHTML = `โมเดลนี้มี <strong>${M.countMeshes()} ชิ้นส่วน</strong> · แบ่งเป็น <strong>${M.order.length} เลเยอร์</strong> ใน <strong>${new Set(M.order.map(n=>M.meta[n].cat)).size} หมวดงาน</strong>`;
+  apply(); fitCamera();
+}
+
+/* จัดกล้องให้เห็นเลเยอร์ที่เปิดอยู่ครบ (ไม่นับงานดิน ไม่งั้นพื้นดินกินเฟรม) */
+const _bb=new THREE.Box3(), _b1=new THREE.Box3(), _sz=new THREE.Vector3(), _ct=new THREE.Vector3(), _v=new THREE.Vector3();
+function fitCamera(){
+  resize();
+  M.root.updateMatrixWorld(true);          // ตำแหน่งเพิ่งถูกเลื่อนใน apply() ต้อง update ก่อนวัด
+  const boxes=[]; _bb.makeEmpty();
+  M.order.forEach(n=>{
+    if(!vis[n] || (iso && iso!==n)) return;
+    if(M.meta[n].cat==='earth') return;     // พื้นดินไม่นับ ไม่งั้นกินเฟรม
+    const b=new THREE.Box3().setFromObject(M.groups[n]);
+    if(isFinite(b.min.x)){ boxes.push(b); _bb.union(b); }
+  });
+  if(!boxes.length) return;
+  _bb.getSize(_sz); _bb.getCenter(_ct);
+  cam.target.copy(_ct);
+  // วัดกรอบที่ฉายลงจอจริงของ "แต่ละเลเยอร์" (แน่นกว่าใช้กล่องรวมก้อนเดียว)
+  // แล้วปรับระยะจนพอดี — ถูกต้องทั้งอัตราส่วนจอและเปอร์สเปกทีฟ
+  cam.dist = Math.max(_sz.x,_sz.y,_sz.z,1);
+  const FILL = 0.90;
+  for(let it=0; it<16; it++){
+    applyCam(); camera.updateMatrixWorld(true);
+    let mx=0;
+    for(const b of boxes) for(let i=0;i<8;i++){
+      _v.set(i&1?b.max.x:b.min.x, i&2?b.max.y:b.min.y, i&4?b.max.z:b.min.z).project(camera);
+      mx=Math.max(mx, Math.abs(_v.x), Math.abs(_v.y));
+    }
+    if(!isFinite(mx)||mx<1e-4) break;
+    if(Math.abs(mx-FILL)<0.01) break;
+    cam.dist *= mx/FILL;
+  }
+  applyCam();
+}
+
+function buildTree(){
+  const CAT=AssemblyModel.CAT, byCat={};
+  M.order.forEach(n=>{ const c=M.meta[n].cat; (byCat[c]=byCat[c]||[]).push(n); });
+  let html='';
+  Object.keys(CAT).forEach(c=>{
+    if(!byCat[c]) return;
+    html+=`<div class="cat"><input type="checkbox" data-cat="${c}" checked>
+      <i class="sw" style="background:${CAT[c].color}"></i>${CAT[c].label}
+      <span style="margin-left:auto;font-weight:400;color:#94a3b8;font-size:11px">${byCat[c].length}</span></div>`;
+    byCat[c].forEach(n=>{
+      const m=M.meta[n];
+      html+=`<div class="ly" data-row="${n}">
+        <input type="checkbox" data-ly="${n}">
+        <span class="nm" data-nm="${n}" title="${m.label}">${m.label}</span>
+        ${m.stage!==undefined?`<span class="st">ขั้น ${m.stage+1}</span>`:''}
+        <button class="iso" data-iso="${n}">เดี่ยว</button></div>`;
+    });
+  });
+  $('tree').innerHTML=html;
+
+  $('tree').querySelectorAll('[data-ly]').forEach(el=>{
+    el.checked = vis[el.dataset.ly];
+    el.onchange=()=>{ vis[el.dataset.ly]=el.checked; iso=null; apply(); };
+  });
+  $('tree').querySelectorAll('[data-cat]').forEach(el=>{
+    el.onchange=()=>{ (byCat[el.dataset.cat]||[]).forEach(n=>vis[n]=el.checked); iso=null; syncTree(); apply(); };
+  });
+  const isolate=n=>{ iso=(iso===n)?null:n; apply(); };
+  $('tree').querySelectorAll('[data-iso]').forEach(el=> el.onclick=()=>isolate(el.dataset.iso));
+  $('tree').querySelectorAll('[data-nm]').forEach(el=> el.onclick=()=>isolate(el.dataset.nm));
+}
+function syncTree(){
+  $('tree').querySelectorAll('[data-ly]').forEach(el=> el.checked=vis[el.dataset.ly]);
+  $('tree').querySelectorAll('[data-row]').forEach(el=>
+    el.classList.toggle('dim', !vis[el.dataset.row] || (iso && iso!==el.dataset.row)));
+}
+
+/* ระยะเลื่อนของแต่ละเลเยอร์ตามโหมดที่เลือก */
+const OFF=new THREE.Vector3();
+function offsetFor(n){
+  const m=M.meta[n], mode=$('mode').value, u=baseDist;
+  if(mode==='trade'){
+    if(m.cat==='rebar') return OFF.set(-u,0,0);
+    if(m.cat==='form')  return OFF.set( u,0,0);
+    return OFF.set(0,0,0);                       // คอนกรีต/ดิน/เข็ม = แกนอ้างอิง
+  }
+  if(mode==='level'){
+    const i=levelOrder.indexOf(m.level);
+    return OFF.set(0,(i-(levelOrder.length-1)/2)*u*0.55,0);
+  }
+  // stage
+  const s=(m.stage===undefined)?0:m.stage;
+  return OFF.set(0,(s-(M.stages.length-1)/2)*u*0.16,0);
+}
+
+function apply(){
+  const amt=g('explode')/100, xray=$('xray').checked;
+  $('explodeV').textContent=Math.round(amt*100)+'%';
+  M.order.forEach(n=>{
+    const grp=M.groups[n], m=M.meta[n];
+    const off=offsetFor(n);
+    grp.position.copy(grp.userData.home).addScaledVector(off, amt);
+    let o = vis[n] ? 1 : 0;
+    if(iso) o = (n===iso) ? 1 : (vis[n] ? 0.06 : 0);
+    if(o>0.5 && xray && m.cat==='conc') o=0.22;
+    AssemblyModel.setOpacity(grp, o);
+  });
+  syncTree();
+}
+
+/* ---- ป้ายกำกับ (HTML overlay ลอยตามตำแหน่ง 3 มิติ) ---- */
+const _p=new THREE.Vector3();
+function labelData(){
+  if(!$('showLab').checked || g('explode')<4) return [];
+  const CAT=AssemblyModel.CAT, out=[], w=canvas.clientWidth, h=canvas.clientHeight;
+  const amt=g('explode')/100;
+  M.order.forEach(n=>{
+    if(!vis[n]) return;
+    if(iso && iso!==n) return;
+    if(M.meta[n].cat==='earth') return;                 // ดินไม่ต้องติดป้าย
+    _p.copy(M.meta[n].anchor).addScaledVector(offsetFor(n), amt).project(camera);
+    if(_p.z>1) return;
+    out.push({n, label:M.meta[n].label, color:CAT[M.meta[n].cat].color,
+              x:(_p.x*0.5+0.5)*w, y:(-_p.y*0.5+0.5)*h});
+  });
+  out.sort((a,b)=>a.y-b.y);
+  for(let i=1;i<out.length;i++)                          // กันป้ายทับกันแนวตั้ง
+    if(out[i].y-out[i-1].y<20) out[i].y=out[i-1].y+20;
+  return out;
+}
+function drawLabels(){
+  const data=labelData();
+  $('labels').innerHTML=data.map(d=>
+    `<div class="lab" style="left:${d.x}px;top:${d.y}px;border-left-color:${d.color}">${d.label}</div>`).join('');
+  return data;
+}
+
+/* ---- บันทึกภาพนิ่ง PNG (วาดป้ายลงในภาพด้วย) ---- */
+$('btnPng').onclick=()=>{
+  try{
+    renderer.render(scene,camera);
+    const data=labelData();
+    const w=canvas.width, h=canvas.height, k=w/canvas.clientWidth;
+    const c=document.createElement('canvas'); c.width=w; c.height=h;
+    const x=c.getContext('2d');
+    x.drawImage(canvas,0,0);
+    x.font=`600 ${Math.round(11.5*k)}px 'Sukhumvit Set','Sarabun',sans-serif`;
+    x.textBaseline='middle';
+    data.forEach(d=>{
+      const tw=x.measureText(d.label).width, px=d.x*k, py=d.y*k;
+      const bw=tw+16*k, bh=20*k, bx=px-bw/2, by=py-bh/2;
+      x.fillStyle='rgba(255,255,255,.94)'; x.fillRect(bx,by,bw,bh);
+      x.strokeStyle='#64748b'; x.lineWidth=1*k; x.strokeRect(bx,by,bw,bh);
+      x.fillStyle=d.color; x.fillRect(bx,by,4*k,bh);
+      x.fillStyle='#1e3a5f'; x.fillText(d.label, bx+10*k, py);
+    });
+    const a=document.createElement('a');
+    a.href=c.toDataURL('image/png');
+    a.download='assembly-layers.png'; a.click();
+  }catch(e){ $('err').style.display='block'; $('err').textContent='บันทึกภาพไม่สำเร็จ: '+e.message; }
+};
+
+/* ---- มุมมองด่วน ---- */
+document.querySelectorAll('[data-only]').forEach(b=> b.onclick=()=>{
+  const k=b.dataset.only;
+  iso=null;
+  M.order.forEach(n=>{
+    const c=M.meta[n].cat;
+    if(k==='all')       vis[n]= (n!=='groundLid' && n!=='backfill');
+    else if(k==='perm') vis[n]= (c==='conc'||c==='rebar'||c==='lean'||c==='pile');
+    else if(k==='temp') vis[n]= (c==='form'||(c==='earth'&&n==='pit'));
+    else                vis[n]= (c===k);
+  });
+  apply(); fitCamera();
+});
+$('btnFit').onclick=fitCamera;
+$('vIso').onclick  =()=>{cam.az=-0.65;cam.pol=1.05;applyCam();};
+$('vFront').onclick=()=>{cam.az=-Math.PI/2;cam.pol=1.5707;applyCam();};
+$('vSide').onclick =()=>{cam.az=0;cam.pol=1.5707;applyCam();};
+$('vTop').onclick  =()=>{cam.az=-Math.PI/2;cam.pol=0.06;applyCam();};
+
+['explode','mode','xray','showLab'].forEach(id=>{
+  $(id).addEventListener('input',apply);
+  $(id).addEventListener('change',apply);
+});
+// ขยับสไลเดอร์/สลับโหมดแล้วจัดกรอบให้อัตโนมัติ (หลังจากนั้นซูมเองได้ตามปกติ)
+['explode','mode'].forEach(id=> $(id).addEventListener('change',fitCamera));
+$('btnRebuild').onclick=build;
+
+function tick(){
+  requestAnimationFrame(tick);
+  resize();
+  renderer.render(scene,camera);
+  drawLabels();
+}
+build();
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8F%97%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<title>Assembly Object &amp; Model-Based QTO · คิดปริมาณจากโมเดลตามลำดับก่อสร้างจริง</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Sukhumvit Set','Sarabun',-apple-system,Segoe UI,sans-serif;background:#0a1929;color:#e8eef5;min-height:100vh;padding:14px}
+
+.wrap{max-width:1500px;margin:0 auto}
+.top{background:linear-gradient(135deg,#1e3a5f,#2c5282,#ed8936);padding:14px 18px;border-radius:10px;border:2px solid #ed8936;margin-bottom:14px}
+.top h1{font-size:20px;color:#fff;font-weight:700}
+.top p{font-size:14px;color:#fed7aa;margin-top:4px;line-height:1.5}
+
+/* ---- step rail ---- */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-bottom:14px}
+.step{background:rgba(15,41,66,0.85);border:1.5px solid #2c5282;border-left:4px solid #ed8936;border-radius:8px;padding:10px 12px;cursor:pointer;transition:.15s}
+.step:hover{background:#1a2f48;border-color:#ed8936}
+.step .n{font-size:11px;color:#ed8936;font-weight:700;letter-spacing:.5px}
+.step .t{font-size:14px;color:#fbd38d;font-weight:700;margin-top:2px}
+.step .d{font-size:12px;color:#94a3b8;margin-top:3px;line-height:1.45}
+.step.open{background:#16304d;border-color:#fbd38d}
+.step .body{display:none;font-size:13px;color:#cbd5e0;line-height:1.65;margin-top:8px;padding-top:8px;border-top:1px dashed #2c5282}
+.step.open .body{display:block}
+.step .body b{color:#fbd38d}
+.step .body code{background:#0f1f33;color:#86efac;padding:1px 5px;border-radius:3px;font-size:12px}
+.step .body ul{margin:5px 0 0 16px}
+.step .body li{margin-bottom:3px}
+
+.grid{display:grid;grid-template-columns:400px 1fr;gap:14px;align-items:start}
+.grid>*{min-width:0}
+@media (max-width:1050px){.grid{grid-template-columns:1fr}}
+
+.panel{background:rgba(15,41,66,0.85);border:1.5px solid #2c5282;border-radius:10px;padding:14px;margin-bottom:14px;min-width:0}
+.panel h2{color:#fbd38d;font-size:16px;border-bottom:1px solid #ed8936;padding-bottom:6px;margin-bottom:10px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.panel h3{color:#fbd38d;font-size:14px;margin-top:14px;margin-bottom:6px;font-weight:700;border-left:3px solid #ed8936;padding-left:7px}
+.panel h3:first-of-type{margin-top:4px}
+
+.row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.row label{flex:1;min-width:0;font-size:13px;color:#cbd5e0;line-height:1.35}
+.row input[type=number],.row input[type=text]{width:88px;flex-shrink:0;padding:5px 8px;background:#1a2f48;border:1px solid #2c5282;color:#e8eef5;border-radius:5px;font-family:inherit;font-size:13px;text-align:right}
+.row input[type=text]{text-align:left;width:150px;min-width:0;flex-shrink:1}
+.row input:focus,.row select:focus{outline:none;border-color:#ed8936}
+.row .unit{font-size:11px;color:#94a3b8;width:34px;flex-shrink:0}
+.row select{padding:5px 8px;background:#1a2f48;border:1px solid #2c5282;color:#e8eef5;border-radius:5px;font-family:inherit;font-size:13px;width:122px}
+.chk{display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:13px;color:#cbd5e0;cursor:pointer;background:#152a42;padding:6px 9px;border-radius:5px}
+.chk input{width:17px;height:17px;flex-shrink:0;accent-color:#ed8936}
+
+.btn{background:#ed8936;color:#fff;border:none;padding:8px 14px;border-radius:5px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:600}
+.btn:hover{background:#dd6b20}
+.btn.sec{background:#2c5282}
+.btn.sec:hover{background:#3b6ab0}
+.btn.small{padding:4px 10px;font-size:12px}
+.btnbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+
+.computed{background:rgba(251,191,36,0.1);border-left:3px solid #fbbf24;padding:8px 10px;border-radius:4px;font-size:12.5px;color:#fde68a;margin:8px 0;line-height:1.6}
+.computed strong{color:#fbd38d}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+th{background:#1e3a5f;color:#fbd38d;padding:6px 5px;text-align:center;font-weight:700;border-bottom:1px solid #ed8936;white-space:nowrap}
+td{padding:5px;border-bottom:1px solid #1a2f48;text-align:right}
+td.l{text-align:left}td.c{text-align:center}
+tbody tr:hover{background:#152a42}
+td input{width:52px;padding:3px 5px;background:#1a2f48;border:1px solid #2c5282;color:#e8eef5;border-radius:4px;font-family:inherit;font-size:12px;text-align:right}
+tfoot td{font-weight:700;color:#fbd38d;background:#16304d;border-top:2px solid #ed8936}
+.tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10.5px;font-weight:700;color:#0a1929}
+.seqb{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:700;color:#0a1929}
+
+.tbl-scroll{overflow-x:auto}
+
+.canvas-wrap{background:#0f1f33;border:1.5px solid #2c5282;border-radius:10px;padding:10px}
+.canvas-wrap svg{width:100%;height:auto;display:block;background:#f8fafc;border-radius:6px}
+
+.results{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:10px}
+.stat{background:#1a2f48;border:1px solid #2c5282;border-radius:6px;padding:9px 10px}
+.stat .lbl{font-size:10.5px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px}
+.stat .val{font-size:17px;color:#fbd38d;font-weight:700;margin-top:2px}
+.stat .sub{font-size:11px;color:#cbd5e0;margin-top:1px}
+
+.note{font-size:11.5px;color:#94a3b8;font-style:italic;margin-top:7px;line-height:1.6}
+
+/* gantt */
+.gantt{margin-top:6px}
+.gline{display:grid;grid-template-columns:190px 1fr 58px;gap:8px;align-items:center;margin-bottom:4px;font-size:12px}
+.gname{color:#cbd5e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gtrack{background:#0f1f33;border-radius:4px;height:19px;position:relative;border:1px solid #1a2f48}
+.gbar{position:absolute;height:100%;border-radius:3px;display:flex;align-items:center;padding-left:5px;font-size:10.5px;font-weight:700;color:#0a1929;overflow:hidden}
+.gday{color:#94a3b8;text-align:right;font-size:11px}
+@media (max-width:700px){.gline{grid-template-columns:120px 1fr 48px}}
+
+.badge{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:700}
+.ok{background:#166534;color:#86efac}
+.warn{background:#854d0e;color:#fde68a}
+.bad{background:#7f1d1d;color:#fca5a5}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="top">
+  <h1>🏗️ Assembly Object &amp; Model-Based QTO</h1>
+  <p>แตกวัตถุในโมเดลตาม “ลำดับการก่อสร้างจริง” (1 Object = 1 การเท = 1 กิจกรรม) แล้วดึงปริมาณคอนกรีต / แบบหล่อ / เหล็กเสริม / งานดิน ออกมาเป็น BOQ + 4D + 5D อัตโนมัติ</p>
+</div>
+
+<!-- ================= STEP RAIL ================= -->
+<div class="steps" id="steps"></div>
+
+<div class="grid">
+
+<!-- ============ LEFT : INPUTS ============ -->
+<div>
+
+  <div class="panel">
+    <h2>1️⃣ โครงการ &amp; ขอบเขต</h2>
+    <div class="row"><label>ชื่อโครงการ</label><input type="text" id="projName" value="MR10 - สะพานข้ามคลอง"></div>
+    <div class="row"><label>ตอน / Zone</label><input type="text" id="zoneName" value="ZONE-A"></div>
+    <div class="row"><label>รหัสตอม่อ (Structure ID)</label><input type="text" id="pierId" value="P-01"></div>
+    <div class="row"><label>จำนวนตอม่อที่เหมือนกัน</label><input type="number" id="nPier" value="8" min="1" step="1"><span class="unit">ต้น</span></div>
+    <div class="note">ปริมาณจะคำนวณ “ต่อ 1 ตอม่อ” แล้วคูณจำนวนเป็นยอดโครงการ — นี่คือหลัก Type × Instance ของ model-based QTO</div>
+  </div>
+
+  <div class="panel">
+    <h2>2️⃣ กฎการแตกวัตถุ (Breakdown Rule)</h2>
+    <div class="row"><label>ฐานราก — จำนวนชั้นเท (lift)</label><input type="number" id="capLifts" value="1" min="1" max="6" step="1"><span class="unit">ชั้น</span></div>
+    <div class="row"><label>เสาตอม่อ — ความสูงเทสูงสุด/ชั้น</label><input type="number" id="colLiftMax" value="3.0" min="0.5" step="0.1"><span class="unit">m</span></div>
+    <div class="row"><label>พื้นสะพาน — จำนวน pour strip</label><input type="number" id="deckPours" value="2" min="1" max="10" step="1"><span class="unit">ครั้ง</span></div>
+    <div class="computed" id="ruleNote">—</div>
+    <div class="note">กฎทอง: ถ้าชิ้นงานหนึ่งกินเวลาเทข้ามงวด/ข้ามสัปดาห์ ให้แตกเป็นหลาย object มิฉะนั้น %ความก้าวหน้าจากโมเดลจะไม่ตรงหน้างาน</div>
+  </div>
+
+  <div class="panel">
+    <h2>3️⃣ ขนาดชิ้นส่วน (Geometry)</h2>
+
+    <h3>งานดิน</h3>
+    <div class="row"><label>ระดับขุด GL → ท้องคอนกรีตหยาบ</label><input type="number" id="excDepth" value="3.00" min="0" step="0.05"><span class="unit">m</span></div>
+    <div class="row"><label>ระยะพื้นที่ทำงานรอบฐาน</label><input type="number" id="workSpace" value="0.60" min="0" step="0.05"><span class="unit">m</span></div>
+    <div class="row"><label>ความลาดข้างบ่อ (นอน : ดิ่ง)</label><input type="number" id="slope" value="0.50" min="0" step="0.1"><span class="unit">:1</span></div>
+    <div class="row"><label>ค่าการพองตัวดิน (bulking)</label><input type="number" id="bulk" value="25" min="0" step="1"><span class="unit">%</span></div>
+
+    <h3>คอนกรีตหยาบ + เสาเข็ม</h3>
+    <div class="row"><label>ความหนาคอนกรีตหยาบ</label><input type="number" id="leanT" value="0.10" min="0" step="0.01"><span class="unit">m</span></div>
+    <div class="row"><label>ยื่นพ้นขอบฐานรากด้านละ</label><input type="number" id="leanOver" value="0.10" min="0" step="0.01"><span class="unit">m</span></div>
+    <div class="row"><label>จำนวนเสาเข็ม</label><input type="number" id="nPiles" value="9" min="0" step="1"><span class="unit">ต้น</span></div>
+    <div class="row"><label>เส้นผ่านศูนย์กลางเข็ม</label><input type="number" id="pileD" value="40" min="1" step="1"><span class="unit">cm</span></div>
+    <div class="row"><label>ระยะหัวเข็มฝังในฐานราก</label><input type="number" id="pileEmbed" value="10" min="0" step="1"><span class="unit">cm</span></div>
+    <div class="row"><label>ความยาวที่ต้องสกัดหัวเข็ม</label><input type="number" id="pileCut" value="0.50" min="0" step="0.05"><span class="unit">m</span></div>
+
+    <h3>ฐานราก (Pile cap)</h3>
+    <div class="row"><label>ความยาว L</label><input type="number" id="capL" value="4.50" min="0.1" step="0.05"><span class="unit">m</span></div>
+    <div class="row"><label>ความกว้าง W</label><input type="number" id="capW" value="4.50" min="0.1" step="0.05"><span class="unit">m</span></div>
+    <div class="row"><label>ความหนา H</label><input type="number" id="capH" value="1.50" min="0.1" step="0.05"><span class="unit">m</span></div>
+    <label class="chk"><input type="checkbox" id="capEarth"> เทชนดิน / ใช้ดินเป็นแบบ (ไม่คิดแบบข้าง)</label>
+
+    <h3>เสาตอม่อ (Pier column)</h3>
+    <div class="row"><label>รูปหน้าตัด</label><select id="colShape"><option value="rect">สี่เหลี่ยม</option><option value="circ">กลม</option></select></div>
+    <div class="row" id="rowRect1"><label>ความกว้าง b</label><input type="number" id="colB" value="1.20" min="0.1" step="0.05"><span class="unit">m</span></div>
+    <div class="row" id="rowRect2"><label>ความลึก d</label><input type="number" id="colD" value="1.20" min="0.1" step="0.05"><span class="unit">m</span></div>
+    <div class="row" id="rowCirc" style="display:none"><label>เส้นผ่านศูนย์กลาง D</label><input type="number" id="colDia" value="1.30" min="0.1" step="0.05"><span class="unit">m</span></div>
+    <div class="row"><label>ความสูงเสา (หลังฐาน → ท้องคาน)</label><input type="number" id="colH" value="7.00" min="0.1" step="0.1"><span class="unit">m</span></div>
+
+    <h3>คานหัวเสา + แท่นรองรับ</h3>
+    <label class="chk"><input type="checkbox" id="chOn" checked> มีคานหัวเสา (Crosshead)</label>
+    <div class="row"><label>L × W × H</label>
+      <input type="number" id="chL" value="9.00" step="0.05" style="width:56px">
+      <input type="number" id="chW" value="1.60" step="0.05" style="width:56px">
+      <input type="number" id="chH" value="1.40" step="0.05" style="width:56px"><span class="unit">m</span></div>
+    <label class="chk"><input type="checkbox" id="pedOn" checked> มีแท่นรองแผ่นยางรองรับ (Pedestal)</label>
+    <div class="row"><label>จำนวน × L × W × H</label>
+      <input type="number" id="pedN" value="6" step="1" style="width:42px">
+      <input type="number" id="pedL" value="0.60" step="0.05" style="width:52px">
+      <input type="number" id="pedW" value="0.60" step="0.05" style="width:52px">
+      <input type="number" id="pedH" value="0.20" step="0.05" style="width:52px"></div>
+
+    <h3>พื้นสะพาน (ต่อช่วง)</h3>
+    <label class="chk"><input type="checkbox" id="deckOn"> รวมงานพื้นสะพานในชุดนี้</label>
+    <div class="row"><label>ยาว × กว้าง × หนา</label>
+      <input type="number" id="deckL" value="25.00" step="0.1" style="width:56px">
+      <input type="number" id="deckW" value="10.00" step="0.1" style="width:56px">
+      <input type="number" id="deckT" value="0.22" step="0.01" style="width:56px"><span class="unit">m</span></div>
+    <label class="chk"><input type="checkbox" id="deckGirder" checked> วางบนคานสำเร็จ (ไม่ต้องมีแบบท้องพื้น)</label>
+  </div>
+
+  <div class="panel">
+    <h2>4️⃣ กฎการวัด &amp; อัตราเผื่อ</h2>
+    <h3>อัตราส่วนเหล็กเสริม (kg/m³)</h3>
+    <div class="row"><label>ฐานราก</label><input type="number" id="rCap" value="100" step="5"></div>
+    <div class="row"><label>เสาตอม่อ</label><input type="number" id="rCol" value="180" step="5"></div>
+    <div class="row"><label>คานหัวเสา</label><input type="number" id="rCh" value="220" step="5"></div>
+    <div class="row"><label>แท่นรองรับ</label><input type="number" id="rPed" value="120" step="5"></div>
+    <div class="row"><label>พื้นสะพาน</label><input type="number" id="rDeck" value="150" step="5"></div>
+    <h3>ค่าเผื่อ</h3>
+    <div class="row"><label>เผื่อสูญเสียคอนกรีต</label><input type="number" id="wConc" value="3" step="0.5"><span class="unit">%</span></div>
+    <div class="row"><label>เผื่อทาบต่อเหล็ก (lap)</label><input type="number" id="lapPct" value="8" step="0.5"><span class="unit">%</span></div>
+    <div class="row"><label>เผื่อเศษเหล็ก</label><input type="number" id="wReb" value="3" step="0.5"><span class="unit">%</span></div>
+    <div class="row"><label>จำนวนครั้งใช้ซ้ำแบบหล่อ</label><input type="number" id="formReuse" value="6" min="1" step="1"><span class="unit">ครั้ง</span></div>
+  </div>
+
+  <div class="panel">
+    <h2>5️⃣ ราคาต่อหน่วย (5D)</h2>
+    <div class="row"><label>คอนกรีตโครงสร้าง</label><input type="number" id="pConc" value="2600" step="50"><span class="unit">฿/m³</span></div>
+    <div class="row"><label>คอนกรีตหยาบ</label><input type="number" id="pLean" value="2000" step="50"><span class="unit">฿/m³</span></div>
+    <div class="row"><label>แบบหล่อ (ต่อ m² พื้นที่สัมผัส)</label><input type="number" id="pForm" value="320" step="10"><span class="unit">฿/m²</span></div>
+    <div class="row"><label>เหล็กเสริม</label><input type="number" id="pReb" value="27" step="0.5"><span class="unit">฿/kg</span></div>
+    <div class="row"><label>เตรียมผิวรอยต่อ</label><input type="number" id="pCj" value="120" step="10"><span class="unit">฿/m²</span></div>
+    <div class="row"><label>งานขุดดิน</label><input type="number" id="pExc" value="120" step="10"><span class="unit">฿/m³</span></div>
+    <div class="row"><label>ถมกลับ + บดอัด</label><input type="number" id="pFill" value="180" step="10"><span class="unit">฿/m³</span></div>
+    <div class="row"><label>ขนดินส่วนเกินทิ้ง</label><input type="number" id="pHaul" value="150" step="10"><span class="unit">฿/m³</span></div>
+    <div class="row"><label>สกัดหัวเข็ม</label><input type="number" id="pCut" value="850" step="50"><span class="unit">฿/ต้น</span></div>
+  </div>
+
+</div>
+
+<!-- ============ RIGHT : OUTPUT ============ -->
+<div>
+
+  <div class="panel">
+    <h2>📐 รูปตัด — วัตถุแยกตามลำดับเท <span class="badge ok" id="objCount">0 objects</span></h2>
+    <div class="canvas-wrap"><svg id="svg" viewBox="0 0 960 640" preserveAspectRatio="xMidYMid meet"></svg></div>
+    <div class="results" id="stats"></div>
+  </div>
+
+  <div class="panel">
+    <h2>🧱 Assembly Objects (1 Object = 1 การเท = 1 กิจกรรม)</h2>
+    <div class="tbl-scroll">
+      <table id="tblAsm">
+        <thead><tr>
+          <th>ลำดับ</th><th class="l">รหัส / WBS</th><th class="l">ชิ้นงาน</th>
+          <th>คอนกรีต<br>m³</th><th>แบบหล่อ<br>m²</th><th>เหล็ก<br>kg</th>
+          <th>ดินขุด<br>m³</th><th>ถมกลับ<br>m³</th><th>รอยต่อ<br>m²</th><th>วัน</th>
+        </tr></thead>
+        <tbody></tbody>
+        <tfoot></tfoot>
+      </table>
+    </div>
+    <div class="note">คอลัมน์ “รอยต่อ” คือพื้นที่ construction joint ที่ต้องสกัดผิว/ทำความสะอาด/ทาน้ำยาประสาน — เป็นงานที่มักตกหล่นจาก BOQ แบบเดิม</div>
+  </div>
+
+  <div class="panel">
+    <h2>📊 BOQ รวมทั้งโครงการ <span class="badge warn" id="nPierBadge"></span></h2>
+    <div class="tbl-scroll">
+      <table id="tblBoq">
+        <thead><tr><th class="l">รายการ</th><th>หน่วย</th><th>ต่อ 1 ตอม่อ</th><th>เผื่อ</th><th>รวมโครงการ</th><th>ราคา/หน่วย</th><th>เป็นเงิน (฿)</th></tr></thead>
+        <tbody></tbody>
+        <tfoot></tfoot>
+      </table>
+    </div>
+    <div class="btnbar">
+      <button class="btn" onclick="exportCSV()">⬇ Export BOQ (CSV)</button>
+      <button class="btn sec" onclick="exportJSON()">⬇ Export Assembly Tree (JSON)</button>
+      <button class="btn sec" onclick="window.print()">🖨 พิมพ์</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>⏱️ 4D — ลำดับกิจกรรม (Finish-to-Start)</h2>
+    <div class="gantt" id="gantt"></div>
+    <h3 style="margin-top:14px">เส้นโค้งสะสมปริมาณคอนกรีต (S-Curve)</h3>
+    <div class="canvas-wrap" style="padding:8px"><svg id="scurve" viewBox="0 0 900 260" preserveAspectRatio="xMidYMid meet"></svg></div>
+  </div>
+
+  <div class="panel">
+    <h2>✅ ขั้นที่ 7 — ปรับเทียบกับการถอดแบบ 2D</h2>
+    <div class="row"><label>ปริมาณคอนกรีตจากการถอดแบบมือ (ทั้งโครงการ)</label><input type="number" id="manConc" value="0" step="1"><span class="unit">m³</span></div>
+    <div class="row"><label>เกณฑ์ยอมรับ ±</label><input type="number" id="tolPct" value="5" step="0.5"><span class="unit">%</span></div>
+    <div class="computed" id="recon">กรอกปริมาณจากการถอดแบบมือเพื่อเปรียบเทียบ</div>
+    <div class="note">ถ้าต่างเกินเกณฑ์ มักมาจาก 2 สาเหตุ: (1) ยังไม่ได้ตั้งกฎการตัดกันของ object ทำให้ปริมาตรซ้อนทับ (2) ยังไม่ได้สร้าง derived object เช่น การหักหัวเข็ม / ส่วนคว้าน / บัวปาดมุม</div>
+  </div>
+
+</div>
+</div>
+</div>
+
+<script>
+/* ============================================================
+   STEP-BY-STEP METHODOLOGY
+   ============================================================ */
+const STEPS = [
+ {n:'STEP 1', t:'กำหนดกฎการแตกวัตถุ', d:'โมเดลตามที่จะ “สร้าง” ไม่ใช่ตามที่ “ออกแบบ”',
+  body:`<b>กฎทอง: 1 Object = 1 การเทคอนกรีต = 1 กิจกรรมใน schedule = 1 ครั้งที่ตรวจรับงาน</b>
+  <ul><li>เสาสูง 7 ม. เทครั้งเดียวไม่ได้ → แตกเป็น lift ละ ≤3 ม. ตามความสูงแบบและ workability</li>
+  <li>ฐานรากหนา &gt;1.5 ม. → แตกชั้นเทเพื่อคุมความร้อน mass concrete</li>
+  <li>พื้นสะพานยาว → แตกตาม pour strip / รอยต่อที่ออกแบบไว้</li></ul>
+  เส้นแบ่ง object = <b>รอยต่อการเทจริง (construction joint)</b> เสมอ ถ้าแตกผิด %ความก้าวหน้าที่ดึงจากโมเดลจะเป็นค่าเฉลี่ยลวง ๆ ไม่ตรงหน้างาน`},
+
+ {n:'STEP 2', t:'วางลำดับชั้น Assembly', d:'Project → Zone → Structure → Assembly → Part',
+  body:`โครงสร้างข้อมูลที่ใช้ได้จริง:<br>
+  <code>Project ▸ Zone/ตอน ▸ Structure (P-01) ▸ Assembly (ฐานราก P-01) ▸ Part (lift-1, เหล็ก, แบบ)</code><br><br>
+  ใน IFC ใช้ <b>IfcElementAssembly</b> ครอบ <code>IfcFooting</code> / <code>IfcColumn</code> / <code>IfcReinforcingBar</code>;
+  ใน Revit ใช้ <b>Assembly</b> หรือ Part + Shared Parameter; ใน Tekla ใช้ <b>Cast Unit</b> ซึ่งตรงกับแนวคิดนี้ที่สุด<br><br>
+  ทุก Part ต้อง <b>สืบทอดรหัสจาก Assembly อัตโนมัติ</b> ห้ามพิมพ์มือ ไม่งั้นข้อมูลจะเพี้ยนตอน revise`},
+
+ {n:'STEP 3', t:'ตั้งกฎการตัดกัน (Ownership)', d:'กันปริมาตรซ้อนทับ — สาเหตุอันดับ 1 ของปริมาณผิด',
+  body:`เมื่อวัตถุสองชิ้นทับกัน ต้องประกาศว่า <b>ใครเป็นเจ้าของปริมาตรร่วม</b>:
+  <ul><li>พื้น ชนะ คาน → คานจบที่ท้องพื้น</li>
+  <li>คาน ชนะ เสา → เสาจบที่ท้องคาน</li>
+  <li>ฐานราก <b>หักปริมาตรหัวเข็มที่ฝังเข้ามา</b></li>
+  <li>คานหัวเสา หักหน้าตัดเสาที่ทะลุขึ้นมา</li></ul>
+  Revit: <code>Join Geometry</code> + <code>Switch Join Order</code> ให้เป็นระบบเดียวทั้งโครงการ แล้วตรวจซ้ำด้วย Interference Check<br>
+  <b>ถ้าไม่ตั้งกฎนี้ ปริมาณคอนกรีตจะเกินจริงราว 3–8%</b>`},
+
+ {n:'STEP 4', t:'สร้างวัตถุที่ไม่มีในแบบ', d:'แบบหล่อ / งานดิน / รอยต่อ / นั่งร้าน = Derived Object',
+  body:`งานที่กินเงินมากที่สุดมัก <b>ไม่มีรูปในแบบ</b> ต้องประกาศเป็นสูตรอนุพันธ์จาก geometry:
+  <ul><li><b>แบบหล่อ</b> = พื้นที่สัมผัสคอนกรีต − ด้านที่เทชนดิน − ด้านที่เป็นรอยต่อ − ผิวบนอิสระ</li>
+  <li><b>ท้องคานหัวเสา (soffit)</b> ต้องมีแบบท้องด้วย — คนลืมบ่อยที่สุด</li>
+  <li><b>งานดิน</b> = neat line + ระยะพื้นที่ทำงาน + ความลาดข้าง (ไม่ใช่ขนาดฐานรากเปล่า ๆ)</li>
+  <li><b>พื้นที่รอยต่อ</b> ที่ต้องสกัด/ล้าง/ทาน้ำยาประสาน</li>
+  <li><b>ดินส่วนเกิน</b> ต้องคูณค่าการพองตัวก่อนคิดค่าขน</li></ul>
+  เครื่องมือนี้คำนวณทั้งหมดนั้นให้อัตโนมัติจากขนาดที่กรอก`},
+
+ {n:'STEP 5', t:'ผูก Property ให้ครบ', d:'WBS · Pay item · Spec · Activity ID · %เผื่อ',
+  body:`ทุก object ต้องพก property เหล่านี้ ไม่งั้นดึงปริมาณออกมาแล้วจัดกลุ่มไม่ได้:
+  <ul><li><b>WBS code</b> — ผูกกับโครงสร้างสัญญา</li>
+  <li><b>Pay item</b> — รหัสรายการจ่ายเงินตามสัญญา/กรมทางหลวง</li>
+  <li><b>Material spec</b> — fc′, ชั้นคุณภาพ, ชนิดแบบหล่อ</li>
+  <li><b>Activity ID</b> — เชื่อมกับแผนงาน</li>
+  <li><b>Zone / Level / สถานะ</b> — วางแผน, เทแล้ว, ตรวจรับแล้ว</li></ul>
+  ใน IFC เก็บเป็น <code>Pset_</code> ที่กำหนดเอง + <code>Qto_*BaseQuantities</code> เพื่อให้ปริมาณติดไปกับไฟล์เมื่อส่งต่อ`},
+
+ {n:'STEP 6', t:'เชื่อม 4D และ 5D', d:'Object ↔ Activity ↔ Cost',
+  body:`<b>4D</b> — จับคู่ <code>Object.ActivityID</code> กับกิจกรรมในแผน (Navisworks TimeLiner / Synchro / Bexel / Vico)
+  แล้ว object จะโผล่ตามวันจริง ใช้ตรวจ constructability และคิด %ก้าวหน้าตามปริมาณจริง<br><br>
+  <b>5D</b> — ปริมาณ × ราคาต่อหน่วย → BOQ และกระแสเงินสด<br>
+  ข้อสำคัญ: <b>แบบหล่อคิดตาม “จำนวนครั้งที่ใช้”</b> ไม่ใช่พื้นที่ครั้งเดียว — ยิ่งใช้ซ้ำได้มาก ต้นทุนต่อ m² ยิ่งต่ำ`},
+
+ {n:'STEP 7', t:'ปรับเทียบและล็อก Baseline', d:'ต่างจากถอดแบบมือไม่เกิน ±3–5%',
+  body:`ก่อนใช้จริงต้องพิสูจน์ว่าโมเดลเชื่อถือได้:
+  <ul><li>เทียบปริมาณโมเดล vs ถอดแบบมือ ให้ต่าง <b>ไม่เกิน ±3–5%</b></li>
+  <li>ตรวจ <b>orphan object</b> — วัตถุที่ไม่มี WBS/Activity (ดึงปริมาณแล้วหาย)</li>
+  <li>ตรวจ <b>double count</b> — ปริมาตรซ้อนจากข้อ 3</li>
+  <li>ผ่านแล้ว <b>ล็อกเป็น baseline</b> ทุกการแก้หลังจากนั้นถือเป็น variation ที่ต้องมีหลักฐาน</li></ul>`}
+];
+
+function renderSteps(){
+  document.getElementById('steps').innerHTML = STEPS.map((s,i)=>
+    `<div class="step" onclick="this.classList.toggle('open')">
+      <div class="n">${s.n}</div><div class="t">${s.t}</div><div class="d">${s.d}</div>
+      <div class="body">${s.body}</div></div>`).join('');
+}
+
+/* ============================================================
+   QUANTITY ENGINE
+   ============================================================ */
+const g  = id => parseFloat(document.getElementById(id).value)||0;
+const gb = id => document.getElementById(id).checked;
+const gs = id => document.getElementById(id).value;
+const gt = id => document.getElementById(id).value.trim();
+
+const DUR = {EXC:2, CUT:2, LEAN:1, CAP:3, FILL:2, COL:4, CH:5, PED:2, DECK:5};
+let userDur = {};            // แก้จำนวนวันในตารางแล้วจำไว้
+let ASM = [], P = {}, GEO = {};
+
+function hue(i,n){ return `hsl(${(i*47)%360} 70% 62%)`; }
+
+function build(){
+  P = {
+    proj:gt('projName'), zone:gt('zoneName'), pier:gt('pierId'), nUnit:Math.max(1,g('nPier')),
+    excDepth:g('excDepth'), ws:g('workSpace'), slope:g('slope'), bulk:g('bulk')/100,
+    leanT:g('leanT'), leanOver:g('leanOver'),
+    nPiles:g('nPiles'), pileD:g('pileD')/100, pileEmb:g('pileEmbed')/100, pileCut:g('pileCut'),
+    capL:g('capL'), capW:g('capW'), capH:g('capH'),
+    capLifts:Math.max(1,Math.round(g('capLifts'))), capEarth:gb('capEarth'),
+    colShape:gs('colShape'), colB:g('colB'), colD:g('colD'), colDia:g('colDia'),
+    colH:g('colH'), colLift:Math.max(0.5,g('colLiftMax')),
+    chOn:gb('chOn'), chL:g('chL'), chW:g('chW'), chH:g('chH'),
+    pedOn:gb('pedOn'), pedN:g('pedN'), pedL:g('pedL'), pedW:g('pedW'), pedH:g('pedH'),
+    deckOn:gb('deckOn'), deckL:g('deckL'), deckW:g('deckW'), deckT:g('deckT'),
+    deckPours:Math.max(1,Math.round(g('deckPours'))), deckGirder:gb('deckGirder'),
+    r:{cap:g('rCap'),col:g('rCol'),ch:g('rCh'),ped:g('rPed'),deck:g('rDeck')},
+    wConc:g('wConc')/100, lap:g('lapPct')/100, wReb:g('wReb')/100, reuse:Math.max(1,g('formReuse')),
+    price:{conc:g('pConc'),lean:g('pLean'),form:g('pForm'),reb:g('pReb'),cj:g('pCj'),
+           exc:g('pExc'),fill:g('pFill'),haul:g('pHaul'),cut:g('pCut')}
+  };
+
+  const colA  = P.colShape==='circ' ? Math.PI/4*P.colDia*P.colDia : P.colB*P.colD;
+  const colPer= P.colShape==='circ' ? Math.PI*P.colDia            : 2*(P.colB+P.colD);
+  const pileA = Math.PI/4*P.pileD*P.pileD;
+
+  // ---- งานดิน : ปริซึมตัดยอด (prismoidal) ----
+  const bL=P.capL+2*(P.ws+P.leanOver), bW=P.capW+2*(P.ws+P.leanOver);
+  const dD=P.excDepth;
+  const tL=bL+2*P.slope*dD, tW=bW+2*P.slope*dD;
+  const mL=(bL+tL)/2, mW=(bW+tW)/2;
+  const vExc = dD/6*(bL*bW + 4*(mL*mW) + tL*tW);
+
+  const leanL=P.capL+2*P.leanOver, leanW=P.capW+2*P.leanOver;
+  const vLean = leanL*leanW*P.leanT;
+
+  GEO = {colA,colPer,pileA,bL,bW,tL,tW,leanL,leanW,vExc,vLean};
+
+  const A=[]; let n=1;
+  const push=o=>{ o.seq=n++; o.dur = userDur[o.code] ?? o.dur; A.push(o); };
+  const Z=()=>({conc:0,form:0,reb:0,exc:0,fill:0,cj:0,lean:0,haul:0,cut:0});
+
+  // 1. ขุดดิน
+  push({code:`${P.pier}-EXC`, wbs:'01-งานดิน', name:'ขุดดินฐานราก (รวมพื้นที่ทำงาน+ลาดข้าง)', type:'EXC',
+        dur:DUR.EXC, q:Object.assign(Z(),{exc:vExc}),
+        note:`ก้น ${bL.toFixed(2)}×${bW.toFixed(2)} ปากบ่อ ${tL.toFixed(2)}×${tW.toFixed(2)} ลึก ${dD.toFixed(2)} m`});
+
+  // 2. สกัดหัวเข็ม
+  const vCut = P.nPiles*pileA*P.pileCut;
+  push({code:`${P.pier}-CUT`, wbs:'02-เสาเข็ม', name:`สกัดหัวเข็ม ${P.nPiles} ต้น × ${P.pileCut.toFixed(2)} m`, type:'CUT',
+        dur:DUR.CUT, q:Object.assign(Z(),{cut:P.nPiles}), extra:{demol:vCut},
+        note:`คอนกรีตที่สกัดออก ${vCut.toFixed(2)} m³`});
+
+  // 3. คอนกรีตหยาบ
+  push({code:`${P.pier}-LEAN`, wbs:'03-คอนกรีตหยาบ', name:`คอนกรีตหยาบ ${leanL.toFixed(2)}×${leanW.toFixed(2)}×${P.leanT.toFixed(2)}`, type:'LEAN',
+        dur:DUR.LEAN, q:Object.assign(Z(),{lean:vLean}),
+        note:'เทชนดิน ไม่คิดแบบข้าง'});
+
+  // 4. ฐานราก (แตกตามชั้นเท)
+  const hCap = P.capH/P.capLifts;
+  let capNet = 0;
+  for(let i=0;i<P.capLifts;i++){
+    const gross = P.capL*P.capW*hCap;
+    const ded   = (i===0) ? P.nPiles*pileA*Math.min(P.pileEmb,hCap) : 0;
+    const net   = gross-ded; capNet += net;
+    const form  = P.capEarth ? 0 : 2*(P.capL+P.capW)*hCap;
+    const cj    = (i>0) ? P.capL*P.capW : 0;
+    push({code:`${P.pier}-CAP-L${i+1}`, wbs:'04-ฐานราก',
+          name:`ฐานราก ชั้นเทที่ ${i+1}/${P.capLifts} (สูง ${hCap.toFixed(2)} m)`, type:'CAP', dur:DUR.CAP,
+          q:Object.assign(Z(),{conc:net, form, reb:net*P.r.cap, cj}),
+          note: i===0 ? `หักหัวเข็มฝัง ${ded.toFixed(2)} m³` : 'มีรอยต่อกับชั้นล่าง'});
+  }
+
+  // 5. ถมกลับ
+  const burCol = colA*Math.max(0, dD-P.leanT-P.capH);
+  const buried = vLean + capNet + burCol;
+  const vFill  = Math.max(0, vExc-buried);
+  const vHaul  = Math.max(0, vExc-vFill)*(1+P.bulk);
+  push({code:`${P.pier}-FILL`, wbs:'05-ถมกลับ', name:'ถมกลับ + บดอัด และขนดินส่วนเกิน', type:'FILL',
+        dur:DUR.FILL, q:Object.assign(Z(),{fill:vFill, haul:vHaul}),
+        note:`ปริมาตรที่โครงสร้างแทนที่ ${buried.toFixed(2)} m³ · ดินขนทิ้ง(หลวม) ${vHaul.toFixed(2)} m³`});
+
+  // 6. เสาตอม่อ (lift)
+  const kCol = Math.max(1,Math.ceil(P.colH/P.colLift));
+  const hCol = P.colH/kCol;
+  for(let i=0;i<kCol;i++){
+    const v=colA*hCol, form=colPer*hCol;
+    push({code:`${P.pier}-COL-L${i+1}`, wbs:'06-เสาตอม่อ',
+          name:`เสาตอม่อ lift ${i+1}/${kCol} (สูง ${hCol.toFixed(2)} m)`, type:'COL', dur:DUR.COL,
+          q:Object.assign(Z(),{conc:v, form, reb:v*P.r.col, cj:colA}),
+          note:`รอยต่อที่ฐาน lift = ${colA.toFixed(2)} m²`});
+  }
+
+  // 7. คานหัวเสา — มีแบบท้อง (soffit)
+  if(P.chOn){
+    const v=P.chL*P.chW*P.chH;
+    const soffit=Math.max(0,P.chL*P.chW-colA);
+    const form=2*(P.chL+P.chW)*P.chH+soffit;
+    push({code:`${P.pier}-CH`, wbs:'07-คานหัวเสา', name:'คานหัวเสา (Crosshead)', type:'CH', dur:DUR.CH,
+          q:Object.assign(Z(),{conc:v, form, reb:v*P.r.ch, cj:colA}),
+          note:`รวมแบบท้องคาน ${soffit.toFixed(2)} m² (หักหน้าตัดเสา)`});
+  }
+
+  // 8. แท่นรองรับ
+  if(P.pedOn && P.pedN>0){
+    const v=P.pedN*P.pedL*P.pedW*P.pedH;
+    const form=P.pedN*2*(P.pedL+P.pedW)*P.pedH;
+    push({code:`${P.pier}-PED`, wbs:'08-แท่นรองรับ', name:`แท่นรองแผ่นยางรองรับ ${P.pedN} จุด`, type:'PED', dur:DUR.PED,
+          q:Object.assign(Z(),{conc:v, form, reb:v*P.r.ped, cj:P.pedN*P.pedL*P.pedW}),
+          note:'ตำแหน่งต้องตรงกับ bearing layout'});
+  }
+
+  // 9. พื้นสะพาน
+  if(P.deckOn){
+    const segL=P.deckL/P.deckPours;
+    for(let i=0;i<P.deckPours;i++){
+      const v=segL*P.deckW*P.deckT;
+      const soffit=P.deckGirder?0:segL*P.deckW;
+      const edge=2*segL*P.deckT;
+      const bulk=(P.deckPours>1)?P.deckW*P.deckT:0;
+      push({code:`${P.pier}-DECK-P${i+1}`, wbs:'09-พื้นสะพาน',
+            name:`พื้นสะพาน pour ${i+1}/${P.deckPours} (ยาว ${segL.toFixed(2)} m)`, type:'DECK', dur:DUR.DECK,
+            q:Object.assign(Z(),{conc:v, form:soffit+edge+bulk, reb:v*P.r.deck, cj:bulk?P.deckW*P.deckT:0}),
+            note:P.deckGirder?'วางบนคานสำเร็จ — ไม่คิดแบบท้องพื้น':'มีแบบท้องพื้น + นั่งร้าน'});
+    }
+  }
+
+  // 4D: FS chain
+  let t=0; A.forEach(a=>{a.start=t; a.finish=t+a.dur; t=a.finish;});
+  A.forEach((a,i)=>a.color=hue(i,A.length));
+  ASM=A; return A;
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const f=(v,d=2)=>(isFinite(v)?v:0).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const f0=v=>(isFinite(v)?v:0).toLocaleString('en-US',{maximumFractionDigits:0});
+
+function totals(){
+  const T={conc:0,form:0,reb:0,exc:0,fill:0,cj:0,lean:0,haul:0,cut:0};
+  ASM.forEach(a=>{for(const k in T) T[k]+=a.q[k]||0;});
+  return T;
+}
+
+function renderTable(){
+  const tb=document.querySelector('#tblAsm tbody'), tf=document.querySelector('#tblAsm tfoot');
+  tb.innerHTML = ASM.map(a=>`<tr title="${a.note||''}">
+    <td class="c"><span class="seqb" style="background:${a.color}">${a.seq}</span></td>
+    <td class="l"><b style="color:#fbd38d">${a.code}</b><br><span style="font-size:11px;color:#94a3b8">${a.wbs}</span></td>
+    <td class="l">${a.name}<br><span style="font-size:11px;color:#94a3b8">${a.note||''}</span></td>
+    <td>${a.q.conc?f(a.q.conc):(a.q.lean?f(a.q.lean)+'*':'—')}</td>
+    <td>${a.q.form?f(a.q.form):'—'}</td>
+    <td>${a.q.reb?f0(a.q.reb):'—'}</td>
+    <td>${a.q.exc?f(a.q.exc):'—'}</td>
+    <td>${a.q.fill?f(a.q.fill):'—'}</td>
+    <td>${a.q.cj?f(a.q.cj):'—'}</td>
+    <td class="c"><input type="number" min="1" step="1" value="${a.dur}" onchange="setDur('${a.code}',this.value)"></td>
+  </tr>`).join('');
+  const T=totals();
+  tf.innerHTML=`<tr><td colspan="3" class="l">รวม / 1 ตอม่อ (* = คอนกรีตหยาบ)</td>
+    <td>${f(T.conc)}</td><td>${f(T.form)}</td><td>${f0(T.reb)}</td>
+    <td>${f(T.exc)}</td><td>${f(T.fill)}</td><td>${f(T.cj)}</td>
+    <td class="c">${ASM.reduce((s,a)=>s+a.dur,0)}</td></tr>`;
+  document.getElementById('objCount').textContent=`${ASM.length} objects`;
+}
+function setDur(code,v){ userDur[code]=Math.max(1,Math.round(parseFloat(v)||1)); recompute(); }
+
+function renderStats(){
+  const T=totals();
+  const days=ASM.reduce((s,a)=>s+a.dur,0);
+  const rebRatio = T.conc>0 ? T.reb/T.conc : 0;
+  const formRatio= T.conc>0 ? T.form/T.conc : 0;
+  document.getElementById('stats').innerHTML=`
+   <div class="stat"><div class="lbl">คอนกรีตโครงสร้าง</div><div class="val">${f(T.conc)} m³</div><div class="sub">รวม ${P.nUnit} ตอม่อ = ${f(T.conc*P.nUnit)} m³</div></div>
+   <div class="stat"><div class="lbl">แบบหล่อ</div><div class="val">${f(T.form)} m²</div><div class="sub">${f(formRatio,2)} m²/m³ · ใช้ซ้ำ ${P.reuse} ครั้ง</div></div>
+   <div class="stat"><div class="lbl">เหล็กเสริม</div><div class="val">${f0(T.reb)} kg</div><div class="sub">เฉลี่ย ${f0(rebRatio)} kg/m³</div></div>
+   <div class="stat"><div class="lbl">งานดินขุด</div><div class="val">${f(T.exc)} m³</div><div class="sub">ถมกลับ ${f(T.fill)} m³</div></div>
+   <div class="stat"><div class="lbl">พื้นที่รอยต่อ</div><div class="val">${f(T.cj)} m²</div><div class="sub">ต้องสกัด/ทาน้ำยาประสาน</div></div>
+   <div class="stat"><div class="lbl">ระยะเวลา/ตอม่อ</div><div class="val">${days} วัน</div><div class="sub">${ASM.length} กิจกรรม (FS)</div></div>`;
+  document.getElementById('ruleNote').innerHTML =
+    `แตกได้ <strong>${ASM.length} objects</strong> — ฐานราก ${P.capLifts} ชั้นเท · เสาตอม่อ ${Math.max(1,Math.ceil(P.colH/P.colLift))} lift`+
+    (P.deckOn?` · พื้น ${P.deckPours} pour`:'')+
+    `<br>ปริมาตรเทเฉลี่ย <strong>${f(totals().conc/Math.max(1,ASM.filter(a=>a.q.conc>0).length))} m³/ครั้ง</strong>`;
+  document.getElementById('nPierBadge').textContent=`× ${P.nUnit} ตอม่อ`;
+}
+
+function renderBOQ(){
+  const T=totals(), N=P.nUnit, pr=P.price;
+  const rows=[
+    ['คอนกรีตโครงสร้าง (fc′ 280 ksc)','m³',T.conc,1+P.wConc,pr.conc],
+    ['คอนกรีตหยาบ (fc′ 180 ksc)','m³',T.lean,1+P.wConc,pr.lean],
+    ['แบบหล่อ — พื้นที่สัมผัสคอนกรีต (ปริมาณตามสัญญา)','m²',T.form,1,pr.form],
+    ['เหล็กเสริม (รวมทาบต่อ+เศษ)','kg',T.reb,(1+P.lap)*(1+P.wReb),pr.reb],
+    ['เตรียมผิวรอยต่อ (สกัด/ล้าง/น้ำยาประสาน)','m²',T.cj,1,pr.cj],
+    ['งานขุดดิน','m³',T.exc,1,pr.exc],
+    ['ถมกลับ + บดอัด','m³',T.fill,1,pr.fill],
+    ['ขนดินส่วนเกินทิ้ง (หลวม)','m³',T.haul,1,pr.haul],
+    ['สกัดหัวเข็ม','ต้น',T.cut,1,pr.cut]
+  ];
+  let sum=0;
+  const tb=document.querySelector('#tblBoq tbody');
+  tb.innerHTML=rows.filter(r=>r[2]>0).map(r=>{
+    const [nm,u,q,k,p]=r; const tot=q*k*N; const amt=tot*p; sum+=amt;
+    return `<tr><td class="l">${nm}</td><td class="c">${u}</td><td>${f(q,2)}</td>
+      <td class="c">×${f(k,3)}</td><td><b style="color:#fbd38d">${f(tot,2)}</b></td>
+      <td>${p?f0(p):'—'}</td><td>${p?f0(amt):'—'}</td></tr>`;}).join('');
+  // แถวข้อมูล (ไม่คิดเงิน) — แผงแบบที่ต้องจัดหาจริง ขึ้นกับจำนวนครั้งที่ใช้ซ้ำ
+  const panel=T.form*N/P.reuse;
+  tb.innerHTML+=`<tr style="background:#132741">
+    <td class="l" style="color:#94a3b8;font-style:italic">↳ แผงแบบที่ต้องจัดหา = พื้นที่สัมผัส ÷ ใช้ซ้ำ ${P.reuse} ครั้ง (ข้อมูลวางแผน ไม่คิดเงินซ้ำ)</td>
+    <td class="c">m²</td><td>${f(T.form/P.reuse,2)}</td><td class="c">×${f(1/P.reuse,3)}</td>
+    <td style="color:#cbd5e0">${f(panel,2)}</td><td>—</td><td>—</td></tr>`;
+  document.querySelector('#tblBoq tfoot').innerHTML=
+    `<tr><td colspan="6" class="l">รวมค่าวัสดุ+ค่าดำเนินการหลัก (${N} ตอม่อ)</td><td>${f0(sum)}</td></tr>
+     <tr><td colspan="6" class="l" style="font-weight:400;color:#94a3b8">เฉลี่ยต่อ 1 ตอม่อ</td><td>${f0(sum/N)}</td></tr>`;
+  window.__boqRows=rows; window.__boqSum=sum; window.__panelArea=panel;
+}
+
+function renderGantt(){
+  const total=ASM.reduce((s,a)=>s+a.dur,0)||1;
+  document.getElementById('gantt').innerHTML=ASM.map(a=>`
+    <div class="gline">
+      <div class="gname" title="${a.name}">${a.seq}. ${a.name}</div>
+      <div class="gtrack"><div class="gbar" style="left:${a.start/total*100}%;width:${a.dur/total*100}%;background:${a.color}">${a.dur}d</div></div>
+      <div class="gday">D${a.finish}</div>
+    </div>`).join('') +
+    `<div class="computed" style="margin-top:10px">รวม <strong>${total} วัน</strong>/ตอม่อ · ถ้าทำทีละต้นต่อเนื่อง ${P.nUnit} ต้น = <strong>${total*P.nUnit} วัน</strong> · ถ้าแบ่ง 2 ชุดทำขนาน ≈ <strong>${Math.ceil(total*P.nUnit/2)} วัน</strong></div>`;
+}
+
+function renderSCurve(){
+  const W=900,H=260,mL=62,mR=18,mT=16,mB=34;
+  const pw=W-mL-mR, ph=H-mT-mB;
+  const total=ASM.reduce((s,a)=>s+a.dur,0)||1;
+  let cum=0; const pts=[[0,0]];
+  ASM.forEach(a=>{ cum+=(a.q.conc||0)+(a.q.lean||0); pts.push([a.finish,cum]); });
+  const maxV=cum||1;
+  const X=d=>mL+d/total*pw, Y=v=>mT+ph-v/maxV*ph;
+  let s=`<rect x="0" y="0" width="${W}" height="${H}" fill="#f8fafc"/>`;
+  for(let i=0;i<=4;i++){ const v=maxV*i/4, y=Y(v);
+    s+=`<line x1="${mL}" y1="${y}" x2="${W-mR}" y2="${y}" stroke="#cbd5e0" stroke-width="1"/>
+        <text x="${mL-6}" y="${y+4}" text-anchor="end" font-size="11" fill="#475569">${f(v,1)}</text>`;}
+  for(let i=0;i<=5;i++){ const d=Math.round(total*i/5), x=X(d);
+    s+=`<line x1="${x}" y1="${mT}" x2="${x}" y2="${mT+ph}" stroke="#e2e8f0" stroke-width="1"/>
+        <text x="${x}" y="${H-12}" text-anchor="middle" font-size="11" fill="#475569">D${d}</text>`;}
+  s+=`<polyline points="${pts.map(p=>X(p[0])+','+Y(p[1])).join(' ')}" fill="none" stroke="#ed8936" stroke-width="2.5" stroke-linejoin="round"/>`;
+  pts.slice(1).forEach((p,i)=>{ s+=`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="3.5" fill="${ASM[i].color}" stroke="#1e3a5f" stroke-width="1"/>`;});
+  s+=`<text x="${mL}" y="${mT-3}" font-size="11" fill="#1e3a5f" font-weight="700">คอนกรีตสะสม (m³) ต่อ 1 ตอม่อ</text>`;
+  document.getElementById('scurve').innerHTML=s;
+}
+
+/* ---------- SVG elevation ---------- */
+function renderSVG(){
+  const W=960,H=640, pad=54;
+  const {colA,colPer,leanL,leanW,bL,tL}=GEO;
+  const colWd = P.colShape==='circ'?P.colDia:P.colB;
+  const yBot=-P.excDepth;
+  const yLean=yBot+P.leanT;
+  const yCap=yLean+P.capH;
+  const yCol=yCap+P.colH;
+  const yCH =yCol+(P.chOn?P.chH:0);
+  const yPed=yCH+(P.pedOn?P.pedH:0);
+  const yTop=yPed+(P.deckOn?P.deckT:0);
+
+  const maxW=Math.max(tL, P.chOn?P.chL:0, P.deckOn?P.deckW:0, leanL)*1.12;
+  const range=(yTop-yBot)*1.14 || 1;
+  const sc=Math.min((W-2*pad)/maxW,(H-2*pad)/range);
+  const cx=W/2, gy=pad+ (yTop*sc) + 8;                 // y ของระดับดินเดิม (GL=0)
+  const X=x=>cx+x*sc, Y=y=>gy-y*sc;
+
+  let s=`<rect width="${W}" height="${H}" fill="#f8fafc"/>`;
+
+  // excavation pit
+  s+=`<path d="M ${X(-tL/2)} ${Y(0)} L ${X(-bL/2)} ${Y(yBot)} L ${X(bL/2)} ${Y(yBot)} L ${X(tL/2)} ${Y(0)}"
+        fill="#fef3c7" stroke="#b45309" stroke-width="1.6" stroke-dasharray="7 4"/>`;
+  // ground line
+  s+=`<line x1="18" y1="${Y(0)}" x2="${W-18}" y2="${Y(0)}" stroke="#78350f" stroke-width="2.5"/>`;
+  for(let x=22;x<W-22;x+=17){
+    if(x>X(-tL/2)-2&&x<X(tL/2)+2) continue;
+    s+=`<line x1="${x}" y1="${Y(0)}" x2="${x-8}" y2="${Y(0)+9}" stroke="#a16207" stroke-width="1.2"/>`;
+  }
+  s+=`<text x="24" y="${Y(0)-7}" font-size="12" fill="#78350f" font-weight="700">ระดับดินเดิม (GL)</text>`;
+
+  // piles
+  const np=Math.min(P.nPiles,7), pw=P.pileD*sc, ppitch=(P.capL-1.0)/Math.max(1,np-1);
+  for(let i=0;i<np;i++){
+    const px=(np===1)?0:(-(P.capL-1.0)/2+i*ppitch);
+    s+=`<rect x="${X(px)-pw/2}" y="${Y(yLean+P.pileEmb)}" width="${pw}" height="${(P.pileEmb+P.leanT+1.5)*sc}"
+          fill="#94a3b8" stroke="#475569" stroke-width="1"/>`;
+  }
+
+  const box=(x,y,w,h,fill,stroke)=>`<rect x="${X(x)}" y="${Y(y+h)}" width="${w*sc}" height="${h*sc}" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`;
+
+  // ป้ายลำดับ — วางชิดซ้ายของชิ้นงาน แล้วเลื่อนออกอัตโนมัติถ้าทับกัน
+  const placed=[];
+  const badge=(edgeX,y,a)=>{
+    if(!a) return '';
+    const ay=Y(y); let ax=X(edgeX)-20, guard=0;
+    while(placed.some(p=>Math.abs(p.y-ay)<24&&Math.abs(p.x-ax)<24)&&guard++<6) ax-=26;
+    ax=Math.max(16,ax); placed.push({x:ax,y:ay});
+    return `<line x1="${ax+11}" y1="${ay}" x2="${X(edgeX)}" y2="${ay}" stroke="#94a3b8" stroke-width="1"/>
+      <circle cx="${ax}" cy="${ay}" r="11" fill="${a.color}" stroke="#1e3a5f" stroke-width="1.5"/>
+      <text x="${ax}" y="${ay+4}" text-anchor="middle" font-size="11.5" font-weight="700" fill="#0a1929">${a.seq}</text>`;
+  };
+
+  const byCode=c=>ASM.find(a=>a.code===c);
+
+  // งานดิน / สกัดหัวเข็ม / ถมกลับ — วัตถุที่ไม่มีรูปในแบบ
+  s+=badge(-tL/2+P.slope*P.excDepth*0.3, -P.excDepth*0.18, byCode(`${P.pier}-EXC`));
+  s+=badge(-P.capL/2, yBot-0.55, byCode(`${P.pier}-CUT`));
+  s+=badge(-P.capL/2, Math.min(-0.25, yCap+(0-yCap)*0.5), byCode(`${P.pier}-FILL`));
+
+  // lean
+  s+=box(-leanL/2,yBot,leanL,P.leanT,'#cbd5e0','#64748b');
+  s+=badge(-leanL/2,yBot+P.leanT/2,byCode(`${P.pier}-LEAN`));
+
+  // pile cap lifts
+  const hCap=P.capH/P.capLifts;
+  for(let i=0;i<P.capLifts;i++){
+    const a=byCode(`${P.pier}-CAP-L${i+1}`);
+    s+=box(-P.capL/2,yLean+i*hCap,P.capL,hCap,a.color,'#1e3a5f');
+    s+=badge(-P.capL/2,yLean+(i+0.5)*hCap,a);
+    if(i>0) s+=`<line x1="${X(-P.capL/2)}" y1="${Y(yLean+i*hCap)}" x2="${X(P.capL/2)}" y2="${Y(yLean+i*hCap)}" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="6 3"/>`;
+  }
+
+  // column lifts
+  const kCol=Math.max(1,Math.ceil(P.colH/P.colLift)), hCol=P.colH/kCol;
+  for(let i=0;i<kCol;i++){
+    const a=byCode(`${P.pier}-COL-L${i+1}`);
+    s+=box(-colWd/2,yCap+i*hCol,colWd,hCol,a.color,'#1e3a5f');
+    s+=badge(-colWd/2,yCap+(i+0.5)*hCol,a);
+    s+=`<line x1="${X(-colWd/2)}" y1="${Y(yCap+i*hCol)}" x2="${X(colWd/2)}" y2="${Y(yCap+i*hCol)}" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="6 3"/>`;
+  }
+
+  // crosshead
+  if(P.chOn){
+    const a=byCode(`${P.pier}-CH`);
+    s+=box(-P.chL/2,yCol,P.chL,P.chH,a.color,'#1e3a5f');
+    s+=badge(-P.chL/2,yCol+P.chH/2,a);
+  }
+  // pedestals
+  if(P.pedOn&&P.pedN>0){
+    const a=byCode(`${P.pier}-PED`);
+    const npd=Math.min(P.pedN,8), spanL=Math.max(0.1,(P.chOn?P.chL:P.capL)-P.pedL-0.4);
+    for(let i=0;i<npd;i++){
+      const px=(npd===1)?0:(-spanL/2+i*spanL/(npd-1));
+      s+=box(px-P.pedL/2,yCH,P.pedL,P.pedH,a.color,'#1e3a5f');
+    }
+    s+=badge(-(P.chOn?P.chL:P.capL)/2,yCH+P.pedH/2,a);
+  }
+  // พื้นสะพาน — pour strip แบ่งตามแนวยาว (ตั้งฉากกับรูปตัดนี้) จึงแสดงเป็นแผ่นเดียว
+  if(P.deckOn){
+    const a1=byCode(`${P.pier}-DECK-P1`);
+    if(a1){
+      s+=box(-P.deckW/2,yPed,P.deckW,P.deckT,a1.color,'#1e3a5f');
+      for(let i=0;i<P.deckPours;i++) s+=badge(-P.deckW/2,yPed+P.deckT/2,byCode(`${P.pier}-DECK-P${i+1}`));
+      s+=`<text x="${X(0)}" y="${Y(yPed+P.deckT)-6}" text-anchor="middle" font-size="11" fill="#1e3a5f" font-weight="600">พื้นสะพาน — ${P.deckPours} pour strip (แบ่งตามแนวยาว ตั้งฉากกับรูปตัด)</text>`;
+    }
+  }
+
+  // dimension line (right)
+  const dx=Math.max(tL/2, P.chOn?P.chL/2:0)+0.7;
+  const dim=(y1,y2,label)=>{
+    const xx=X(dx);
+    return `<line x1="${xx}" y1="${Y(y1)}" x2="${xx}" y2="${Y(y2)}" stroke="#1e3a5f" stroke-width="1.2"/>
+      <line x1="${xx-5}" y1="${Y(y1)}" x2="${xx+5}" y2="${Y(y1)}" stroke="#1e3a5f" stroke-width="1.2"/>
+      <line x1="${xx-5}" y1="${Y(y2)}" x2="${xx+5}" y2="${Y(y2)}" stroke="#1e3a5f" stroke-width="1.2"/>
+      <text x="${xx+8}" y="${(Y(y1)+Y(y2))/2+4}" font-size="11.5" fill="#1e3a5f" font-weight="600">${label}</text>`;
+  };
+  s+=dim(yBot,yLean,`คอนกรีตหยาบ ${P.leanT.toFixed(2)}`);
+  s+=dim(yLean,yCap,`ฐานราก ${P.capH.toFixed(2)} (${P.capLifts} ชั้นเท)`);
+  s+=dim(yCap,yCol,`เสาตอม่อ ${P.colH.toFixed(2)} (${kCol} lift)`);
+  if(P.chOn) s+=dim(yCol,yCH,`คานหัวเสา ${P.chH.toFixed(2)}`);
+
+  // legend
+  s+=`<g transform="translate(20,${H-56})">
+      <rect x="0" y="0" width="330" height="44" fill="#ffffff" stroke="#cbd5e0" rx="5"/>
+      <line x1="12" y1="16" x2="46" y2="16" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="6 3"/>
+      <text x="52" y="20" font-size="11.5" fill="#334155">รอยต่อการเท (Construction Joint) = ขอบเขต Object</text>
+      <circle cx="24" cy="33" r="8" fill="#fbbf24" stroke="#1e3a5f" stroke-width="1.2"/>
+      <text x="24" y="37" text-anchor="middle" font-size="9" font-weight="700" fill="#0a1929">n</text>
+      <text x="52" y="37" font-size="11.5" fill="#334155">ลำดับการก่อสร้าง / Activity ID</text></g>`;
+
+  document.getElementById('svg').innerHTML=s;
+}
+
+function renderRecon(){
+  const T=totals(), model=(T.conc+T.lean)*P.nUnit*(1+P.wConc);
+  const man=g('manConc'), tol=g('tolPct');
+  const el=document.getElementById('recon');
+  if(man<=0){ el.innerHTML=`ปริมาณคอนกรีตจากโมเดล (รวมเผื่อ ${(P.wConc*100).toFixed(1)}%) = <strong>${f(model)} m³</strong> — กรอกปริมาณจากการถอดแบบมือเพื่อเปรียบเทียบ`; return; }
+  const diff=(model-man)/man*100, pass=Math.abs(diff)<=tol;
+  el.innerHTML=`โมเดล <strong>${f(model)} m³</strong> · ถอดแบบมือ <strong>${f(man)} m³</strong> ·
+    ต่างกัน <strong>${diff>0?'+':''}${f(diff,2)}%</strong>
+    <span class="badge ${pass?'ok':'bad'}" style="margin-left:8px">${pass?'ผ่านเกณฑ์ ±'+tol+'%':'เกินเกณฑ์ ±'+tol+'% — ตรวจ STEP 3 และ STEP 4'}</span>`;
+}
+
+/* ============================================================
+   EXPORT
+   ============================================================ */
+function dl(name,text,mime){
+  const b=new Blob(["﻿"+text],{type:mime}); const u=URL.createObjectURL(b);
+  const a=document.createElement('a'); a.href=u; a.download=name; a.click(); URL.revokeObjectURL(u);
+}
+function exportCSV(){
+  const N=P.nUnit;
+  let c=`โครงการ,${P.proj}\nZone,${P.zone}\nStructure,${P.pier}\nจำนวนตอม่อ,${N}\n\n`;
+  c+='ลำดับ,รหัส,WBS,ชิ้นงาน,คอนกรีต m3,คอนกรีตหยาบ m3,แบบหล่อ m2,เหล็ก kg,ดินขุด m3,ถมกลับ m3,รอยต่อ m2,วัน,เริ่ม D,เสร็จ D\n';
+  ASM.forEach(a=>{c+=[a.seq,a.code,a.wbs,'"'+a.name+'"',
+    a.q.conc.toFixed(3),a.q.lean.toFixed(3),a.q.form.toFixed(3),a.q.reb.toFixed(1),
+    a.q.exc.toFixed(3),a.q.fill.toFixed(3),a.q.cj.toFixed(3),a.dur,a.start,a.finish].join(',')+'\n';});
+  c+='\nBOQ รวมโครงการ\nรายการ,หน่วย,ต่อ 1 ตอม่อ,ตัวคูณเผื่อ,รวมโครงการ,ราคาต่อหน่วย,เป็นเงิน\n';
+  (window.__boqRows||[]).filter(r=>r[2]>0).forEach(r=>{
+    const [nm,u,q,k,p]=r; const tot=q*k*N;
+    c+=`"${nm}",${u},${q.toFixed(3)},${k.toFixed(4)},${tot.toFixed(3)},${p},${(tot*p).toFixed(2)}\n`;});
+  c+=`"แผงแบบที่ต้องจัดหา (พื้นที่สัมผัส ÷ ใช้ซ้ำ ${P.reuse} ครั้ง)",m2,${(totals().form/P.reuse).toFixed(3)},${(1/P.reuse).toFixed(4)},${(window.__panelArea||0).toFixed(3)},,\n`;
+  c+=`,,,,,รวม,${(window.__boqSum||0).toFixed(2)}\n`;
+  dl(`BOQ_${P.pier}_${P.zone}.csv`,c,'text/csv;charset=utf-8');
+}
+function exportJSON(){
+  const o={project:P.proj,zone:P.zone,structure:P.pier,instances:P.nUnit,
+    breakdownRule:{capLifts:P.capLifts,colMaxLiftHeight:P.colLift,deckPours:P.deckPours,
+      principle:'1 Object = 1 pour = 1 activity'},
+    assemblies:ASM.map(a=>({sequence:a.seq,code:a.code,wbs:a.wbs,name:a.name,type:a.type,
+      activityId:a.code,durationDays:a.dur,startDay:a.start,finishDay:a.finish,
+      quantities:{concrete_m3:+a.q.conc.toFixed(3),lean_m3:+a.q.lean.toFixed(3),
+        formwork_m2:+a.q.form.toFixed(3),rebar_kg:+a.q.reb.toFixed(1),
+        excavation_m3:+a.q.exc.toFixed(3),backfill_m3:+a.q.fill.toFixed(3),
+        haul_m3:+a.q.haul.toFixed(3),jointArea_m2:+a.q.cj.toFixed(3),pileCut_no:a.q.cut},
+      note:a.note||''})),
+    totalsPerUnit:totals(), generated:'assembly-qto.html'};
+  dl(`Assembly_${P.pier}.json`,JSON.stringify(o,null,2),'application/json');
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+function recompute(){
+  build(); renderSVG(); renderStats(); renderTable();
+  renderBOQ(); renderGantt(); renderSCurve(); renderRecon();
+}
+function toggleShape(){
+  const c=gs('colShape')==='circ';
+  document.getElementById('rowRect1').style.display=c?'none':'flex';
+  document.getElementById('rowRect2').style.display=c?'none':'flex';
+  document.getElementById('rowCirc').style.display=c?'flex':'none';
+  recompute();
+}
+renderSteps();
+document.querySelectorAll('input,select').forEach(el=>{
+  el.addEventListener('input',()=>{ if(el.id==='colShape') return; recompute(); });
+  el.addEventListener('change',()=>{ if(el.id==='colShape') return; recompute(); });
+});
+document.getElementById('colShape').addEventListener('change',toggleShape);
+recompute();
+</script>
+</body>
+</html>
